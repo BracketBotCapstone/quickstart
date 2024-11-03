@@ -67,11 +67,13 @@ class ODriveUART:
     def set_speed_rpm(self, rpm):
         rps = rpm / 60
         self.send_command(f'w axis{self.axis_num}.controller.input_vel {rps * self.dir:.4f}')
+        self.send_command(f'u {self.axis_num}')
 
     def set_torque_nm(self, nm):
         torque_bias = 0.05  # Small torque bias in Nm
         adjusted_torque = nm * self.dir + (torque_bias * self.dir * (1 if nm >= 0 else -1))
         self.send_command(f'w axis{self.axis_num}.controller.input_torque {adjusted_torque:.4f}')
+        self.send_command(f'u {self.axis_num}')
 
     def get_speed_rpm(self):
         response = self.send_command(f'r axis{self.axis_num}.encoder.vel_estimate')
