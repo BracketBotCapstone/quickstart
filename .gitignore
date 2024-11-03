@@ -1,0 +1,5 @@
+plots.png
+__pycache__/
+madgwick_py/__pycache__/
+gyro_bias.txt
+motor_dir.json
