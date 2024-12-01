@@ -1,18 +1,18 @@
 import json
 import time
 import numpy as np
-from odrive_uart import ODriveUART
-from imu_old import FilteredLSM6DS3
+from nodes.control.balance_control.odesc_uart import ODESC
+from nodes.control.balance_control.imu import FilteredLSM6DS3
 
 def test_motor_direction():
     # Initialize IMU and motors
     imu = FilteredLSM6DS3()
     imu.calibrate()
-    
-    motor_controller = ODriveUART(port='/dev/ttyAMA1', left_axis=1, right_axis=0, dir_left=1, dir_right=1)
+
+    motor_controller = ODESC('/dev/ttyAMA1', left_axis=1, right_axis=0, dir_left=1, dir_right=1)
     
     directions = {'left': 1, 'right': 1}
-    
+
     # Test each motor
     for name in ['left', 'right']:
         print(f"\nTesting {name} motor...")
@@ -24,7 +24,7 @@ def test_motor_direction():
         else:
             motor_controller.start_right()
             motor_controller.enable_velocity_mode_right()
-        
+
         # Get baseline gyro reading
         imu.update()
         baseline_gyro = imu.gyro_RAW[2]  # Z-axis rotation
@@ -44,13 +44,13 @@ def test_motor_direction():
         # Get gyro reading during spin
         spin_gyro = imu.gyro_RAW[2]
         print(f"Spin gyro: {spin_gyro}")
-        
+
         # Stop motor
         if name == 'left':
             motor_controller.stop_left()
         else:
             motor_controller.stop_right()
-        
+    
         # Determine direction based on gyro reading
         # Positive gyro means counterclockwise rotation when viewed from above
         gyro_diff = spin_gyro - baseline_gyro

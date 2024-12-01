@@ -1,0 +1,70 @@
+# Available types: int, float, str, bool, dict, list
+
+# The following is the format for a msg
+# [MSG_NAME]
+# var_name = ["type", "size"]
+# var_name2 = ["type", "size"]
+# ...
+# topic_name = "/topic/name"
+
+[GYRO_DATA]
+timestamp = ["float",'1']
+roll = ["float",'1']
+pitch = ["float",'1']
+yaw = ["float",'1']
+topic_gyro = "/imu/gyro"
+
+[ACCEL_DATA]
+timestamp = ["float",'1']
+x = ["float",'1']
+y = ["float",'1']
+z = ["float",'1']
+
+[RAW_IMU_DATA]
+timestamp = ["float",'1']
+accel_x = ["float",'1']
+accel_y = ["float",'1']
+accel_z = ["float",'1']
+gyro_x = ["float",'1']
+gyro_y = ["float",'1']
+gyro_z = ["float",'1']
+topic_raw_imu = "/imu/raw_imu"
+topic_raw_imu_unscaled_biased = "/imu/raw_imu_unscaled_biased"
+topic_processed_imu = "/localization/processed_imu"
+
+[WHEEL_VELOCITIES_DATA]
+timestamp = ["float",'1']
+left_vel_mps = ["float",'1']
+right_vel_mps = ["float",'1']
+topic_wheel_velocities = "/wheel_velocities_mps"
+
+[EXTENDED_POSE_W_BIAS]
+timestamp = ["float",'1']
+r_a_b_x = ["float",'1']
+r_a_b_y = ["float",'1']
+r_a_b_z = ["float",'1']
+v_a_b_x = ["float",'1']
+v_a_b_y = ["float",'1']
+v_a_b_z = ["float",'1']
+phi_a_b_x = ["float",'1']
+phi_a_b_y = ["float",'1']
+phi_a_b_z = ["float",'1']
+bias_gyro_x = ["float",'1']
+bias_gyro_y = ["float",'1']
+bias_gyro_z = ["float",'1']
+bias_accel_x = ["float",'1']
+bias_accel_y = ["float",'1']
+bias_accel_z = ["float",'1']
+topic_extended_pose_w_bias = "/localization/extended_pose_state"
+
+[OCCUPANCY_GRID]
+timestamp = ["float",'1']
+width = ["int",'1']
+flattened_grid_list = ["list", "1"]
+topic_occupancy_grid = "/mapping/occupancy_grid"
+topic_traversability_grid = "/mapping/traversability_grid"
+
+[TRAJECTORY]
+timestamp = ["float",'1']
+trajectory = ["dict", "1"]
+topic_trajectory = "/planning/trajectory"
