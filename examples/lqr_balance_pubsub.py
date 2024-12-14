@@ -76,6 +76,10 @@ def balance():
     watchdog_client = mqtt.Client()
     watchdog_client.connect("localhost", keepalive=60)  # Add keepalive
     watchdog_client.loop_start()  # Start background thread for MQTT
+
+    #publish position and orientation
+    orientation_client = mqtt.Client()
+    orientation_client.connect("localhost")
     
     def safe_publish_watchdog(client, topic, message):
         try:
@@ -332,6 +336,8 @@ def balance():
             if desired_yaw_rate != 0:
                 start_yaw = (l_pos - r_pos) * MOTOR_TURNS_TO_LINEAR_POS / (2 * WHEEL_DIST)
     
+            orientation_client.publish("robot/orientation", json.dumps({"position": current_pos, "velocity": current_vel, "angle": current_pitch}))
+
             # Calculate control outputs
             current_state = np.array([
                 current_pos,
@@ -427,6 +433,7 @@ def balance():
         motor_controller.clear_errors_right()
         watchdog_client.loop_stop()
         watchdog_client.disconnect()
+        orientation_client.disconnect()
 
         # Plot the data after the loop
         data_logger.plot(x_key='time')
