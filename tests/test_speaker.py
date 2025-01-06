@@ -1,11 +1,11 @@
-from elevenlabs.client import ElevenLabs
 import os
 from io import BytesIO
+
+import dotenv
 import sounddevice as sd
 import soundfile as sf
-import numpy as np
+from elevenlabs.client import ElevenLabs
 from scipy import signal
-import dotenv
 
 dotenv.load_dotenv()
 

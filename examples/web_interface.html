@@ -67,9 +67,10 @@
         // Extract username from URL or use hostname
         const hostname = window.location.hostname;  // e.g., "beige-desktop.local" or "192.168.1.100"
         const username = hostname.split('-')[0];    // e.g., "beige" or use full hostname if no hyphen
-        
+
         // MQTT client setup - use the extracted username or full hostname
         const mqttHost = username.includes('.') ? hostname : `${username}-desktop.local`;
+        console.log("MQTT host:", mqttHost);
         const client = mqtt.connect(`ws://${mqttHost}:9001`);
         
         client.on('connect', function () {
@@ -132,11 +133,13 @@
 
         // Sending messages
         function sendVelocity(linear, angular) {
+            console.log("Sending velocity:", linear, angular);
             const payload = JSON.stringify({
-                linear: linear,
-                angular: angular
+                timestamp: 0.0,
+                linear_velocity_mps: linear,
+                angular_velocity_radps: angular
             });
-            client.publish("robot/velocity", payload);
+            client.publish("/control/target_velocity", payload);
         }
 
         function sendSpeech() {

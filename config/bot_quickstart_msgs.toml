@@ -1,0 +1,116 @@
+# Available types: int, float, str, bool, dict, list
+
+# NOTE: For now do not use the 'data' field in the payload, this is reserved for how messages get sent from the web mqtt client
+
+# The following is the format for a msg
+# [MSG_NAME]
+# var_name = ["type", "size"]
+# var_name2 = ["type", "size"]
+# ...
+# topic_name = "/topic/name"
+# topic_name2 = "/topic/name2"
+# ...
+
+[GYRO_DATA]
+timestamp = ["float",'1']
+roll = ["float",'1']
+pitch = ["float",'1']
+yaw = ["float",'1']
+topic_gyro = "/imu/gyro"
+
+[RAW_IMU_DATA]
+timestamp = ["float",'1']
+accel_x = ["float",'1']
+accel_y = ["float",'1']
+accel_z = ["float",'1']
+gyro_x = ["float",'1']
+gyro_y = ["float",'1']
+gyro_z = ["float",'1']
+topic_raw_imu = "/imu/raw_imu"
+topic_raw_imu_unscaled_biased = "/imu/raw_imu_unscaled_biased"
+topic_processed_imu = "/localization/processed_imu"
+
+[WHEEL_VELOCITIES_DATA]
+timestamp = ["float",'1']
+left_vel_mps = ["float",'1']
+right_vel_mps = ["float",'1']
+topic_wheel_velocities = "/wheel_velocities_mps"
+
+[EXTENDED_POSE_W_BIAS]
+timestamp = ["float",'1']
+r_a_b_x = ["float",'1']
+r_a_b_y = ["float",'1']
+r_a_b_z = ["float",'1']
+v_a_b_x = ["float",'1']
+v_a_b_y = ["float",'1']
+v_a_b_z = ["float",'1']
+phi_a_b_x = ["float",'1']
+phi_a_b_y = ["float",'1']
+phi_a_b_z = ["float",'1']
+bias_gyro_x = ["float",'1']
+bias_gyro_y = ["float",'1']
+bias_gyro_z = ["float",'1']
+bias_accel_x = ["float",'1']
+bias_accel_y = ["float",'1']
+bias_accel_z = ["float",'1']
+topic_extended_pose_w_bias = "/localization/extended_pose_state"
+
+[LOCALIZATION_INITIALIZED]
+timestamp = ["float",'1']
+initialized = ["bool",'1']
+topic_localization_initialized = "/localization/initialized_flag"
+
+[ROBOT_POSE]
+timestamp = ["float",'1']
+x_m = ["float",'1']
+y_m = ["float",'1']
+theta_rad = ["float",'1']
+topic_robot_pose = "/localization/robot_pose"
+
+[ROBOT_EXTENDED_POSE]
+timestamp = ["float",'1']
+r_a_b_x_m = ["float",'1']
+r_a_b_y_m = ["float",'1']
+r_a_b_z_m = ["float",'1']
+v_a_b_x_mps = ["float",'1']
+v_a_b_y_mps = ["float",'1']
+v_a_b_z_mps = ["float",'1']
+phi_a_b_x_rad = ["float",'1']
+phi_a_b_y_rad = ["float",'1']
+phi_a_b_z_rad = ["float",'1']
+topic_robot_extended_pose = "/localization/robot_extended_pose"
+
+[ROBOT_POSE_GRID_COORDS]
+timestamp = ["float",'1']
+x_grid = ["int",'1']
+theta_rad = ["float",'1']
+y_grid = ["int",'1']
+topic_robot_pose_grid_coords = "/mapping/robot_pose_grid_coords"
+
+[OCCUPANCY_GRID]
+timestamp = ["float",'1']
+width = ["int",'1']
+flattened_grid_list = ["list", "1"]
+topic_occupancy_grid = "/mapping/occupancy_grid"
+topic_traversability_grid = "/mapping/traversability_grid"
+
+[TRAJECTORY]
+timestamp = ["float",'1']
+trajectory = ["dict", "1"]
+topic_trajectory = "/planning/trajectory"
+
+[TARGET_POINT]
+timestamp = ["float",'1']
+x_grid = ["int",'1']
+y_grid = ["int",'1']
+topic_target_point = "/planning/target_point"
+
+[WATCHDOG_STATUS]
+timestamp = ["float",'1']
+topic_watchdog_status = "/watchdog/status"
+
+[TARGET_VELOCITY]
+timestamp = ["float",'1']
+linear_velocity_mps = ["float",'1']
+angular_velocity_radps = ["float",'1']
+topic_target_velocity = "/control/target_velocity"

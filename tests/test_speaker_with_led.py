@@ -11,18 +11,19 @@ LED_BAUDRATE = 800            # Baud rate for LED strip
 VOLUME_SENSITIVITY = 10       # Multiplier to adjust volume sensitivity for LEDs
 RAMP_SPEED = 1              # Amount to change the LED count per update (higher = faster ramping)
 
-import threading
-import queue
 import os
-from elevenlabs.client import ElevenLabs
+import queue
+import threading
+from io import BytesIO
+
+import alsaaudio
+import dotenv
+import numpy as np
 import sounddevice as sd
 import soundfile as sf
-from scipy import signal
-from io import BytesIO
-import dotenv
-import alsaaudio
-import numpy as np
+from elevenlabs.client import ElevenLabs
 from pi5neo import Pi5Neo
+from scipy import signal
 
 dotenv.load_dotenv()
 

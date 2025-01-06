@@ -1,18 +1,16 @@
-# Adds the lib directory to the Python path
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 import time
+
 import numpy as np
-from lib.imu import FilteredMPU6050
+
+from nodes.sensors.imu.imu_ahrs_filter import FilteredIMU
+
 
 def determine_imu_orientation():
     print("This test will help determine IMU orientation by measuring accelerations and rotations")
     print("during manual movements of the robot")
     
     # Initialize IMU
-    imu = FilteredMPU6050()
+    imu = FilteredIMU()
     
     # Calibrate IMU
     print("Calibrating IMU...")
@@ -24,7 +22,7 @@ def determine_imu_orientation():
         print("Move the robot for 5 seconds...")
         start_time = time.time()
         while time.time() - start_time < 5:
-            accel, gyro = imu.read_sensor()
+            accel, gyro = imu.imu.read_sensor()
             readings.append((accel, gyro))
             time.sleep(0.02)
         return np.array(readings)

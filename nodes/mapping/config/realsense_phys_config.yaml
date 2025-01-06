@@ -1,0 +1,8 @@
+# a configuration file for the camera extrinsics of the RealSense as of November 2nd, 2024
+extrinsics:
+
+  # components of T_bc, where F_{b} represents the robot body frame, and F_{c} is the Camera frame
+  r_bc: [0, 0.0739853, 1.4884446199999999]
+  phi_bc: [-1.46151515, 1.46151515, 1.02336392]
+
+json_file_loc: "quickstart/nodes/mapping/config/default_435i.json"

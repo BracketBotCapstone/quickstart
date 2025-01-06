@@ -81,7 +81,7 @@
 </head>
 <body>
     <div id="video-container">
-        <img id="robot-video" src="http://beige-desktop.local:5001/?action=stream" alt="Robot Camera Stream">
+        <img id="robot-video" src="http://lime-desktop.local:5001/?action=stream" alt="Robot Camera Stream">
     </div>
     <div id="control-bar">
         <div id="status">Disconnected</div>
@@ -90,7 +90,7 @@
     </div>
     <script>
         // MQTT client setup
-        const client = mqtt.connect('ws://beige-desktop.local:9001');
+        const client = mqtt.connect('ws://lime-desktop.local:9001');
     
         client.on('connect', function () {
             document.getElementById('status').style.color = 'green';
@@ -154,11 +154,12 @@
         // Sending velocity messages
         function sendVelocity(linear, angular) {
             const payload = JSON.stringify({
-                linear: linear,
-                angular: angular
+                timestamp: 0.0,
+                linear_velocity_mps: linear,
+                angular_velocity_radps: angular
             });
             console.log("Sending velocity:", payload);
-            client.publish("robot/velocity", payload);
+            client.publish("/control/target_velocity", payload);
         }
     
         function playSound() {

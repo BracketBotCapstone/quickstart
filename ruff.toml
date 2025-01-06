@@ -1,0 +1,33 @@
+# Ruff
+lint.extend-select = [
+  "C90", # mccabe complexity
+  "I",   # isort
+  "N",   # pep8-naming
+  "D",   # pydocstyle
+  "B",   # flake8-bugbear
+  "A",   # flake8-builtins
+  "PIE", # flake8-pie
+  "PT",  # flake8-pytest-style
+  "SIM", # flake8-simplify
+  "NPY", # Numpy deprecations
+  "RUF", # Ruff builtins
+]
+lint.extend-ignore = [
+  "B905", # This rule only applies to python >=3.10. See https://github.com/PyCQA/flake8-bugbear#:~:text=tutorial%20for%20details.-,B905,-%3A%20zip()
+]
+line-length = 120
+indent-width = 4
+target-version = "py310"
+
+[lint.mccabe]
+max-complexity = 15
+
+[format]
+indent-style = "space"
+line-ending = "lf"
+
+[lint.pydocstyle]
+convention = "numpy"
+
+[lint.per-file-ignores]
+"__init__.py" = ["E402", "F401"]

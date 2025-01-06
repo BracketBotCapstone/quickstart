@@ -1,0 +1,51 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Project",
+            "detail": "Run make command with user-specified CONFIG and CONFIG_MSGS",
+            "type": "shell",
+            "command": "source .vscode/.bashrc && CONFIG=$(echo ${input:pickConfig} | sed 's/\\.toml$//') CONFIG_MSGS=$(echo ${input:pickConfigMsgs} | sed 's/\\.toml$//') make",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "focus": true
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "pickLauncher",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "ls launcher/*.sh | xargs -n 1 basename",
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "id": "pickConfig",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "ls config/*.toml | xargs -n 1 basename",
+                "cwd": "${workspaceFolder}"
+            }
+        },
+        {
+            "id": "pickConfigMsgs",
+            "type": "command",
+            "command": "shellCommand.execute",
+            "args": {
+                "command": "ls config/*.toml | xargs -n 1 basename",
+                "cwd": "${workspaceFolder}"
+            }
+        }
+    ]
+}

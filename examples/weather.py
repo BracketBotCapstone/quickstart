@@ -1,4 +1,5 @@
 import time
+
 import numpy as np
 from transformers import pipeline
 from transformers.pipelines.audio_utils import ffmpeg_microphone_live
@@ -19,12 +20,15 @@ transcriber = pipeline(
 PERPLEXITY_API_KEY="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"
 ELEVEN_LABS_API_KEY = "sk_bf7e6fbfd13cdee351b09adfd2c7a5ceffcfabf89f60fbdb"
 
-from elevenlabs.client import ElevenLabs
 from io import BytesIO
+
+import alsaaudio
 import sounddevice as sd
 import soundfile as sf
+from elevenlabs.client import ElevenLabs
 from scipy import signal
-import alsaaudio
+
+
 def set_alsa_volume(volume=75):
     try:
         cards = alsaaudio.cards()
@@ -68,7 +72,7 @@ def speak_text(text, voice="Brian"):
             sd.play(data, samplerate=sample_rate, device=device_id)
             sd.wait()
             return
-        except Exception as e:
+        except Exception:
             pass
     """Speaks the given text using ElevenLabs API and plays through audio device."""
     # Initialize ElevenLabs client
@@ -113,6 +117,8 @@ def speak_text(text, voice="Brian"):
 
 
 import pyaudio
+
+
 def speak_text_stream(text, voice="Brian"):
     # Check for special phrases that use pre-recorded audio
     text_normalized = text.lower().strip('-.,!?')
@@ -162,7 +168,6 @@ def speak_text_stream(text, voice="Brian"):
             
         except Exception as e:
             print(f"Error playing audio file: {e}")
-            pass
 
     """Streams and plays text-to-speech audio using ElevenLabs API."""
     client = ElevenLabs(api_key=ELEVEN_LABS_API_KEY)
@@ -210,7 +215,7 @@ def speak_text_stream(text, voice="Brian"):
                 audio_data = audio_data.astype(np.float32) / 32768.0
                 
                 # Resample if needed (24000 to device_sample_rate)
-                if 24000 != device_sample_rate:
+                if device_sample_rate != 24000:
                     number_of_samples = int(round(len(audio_data) * float(device_sample_rate) / 24000))
                     audio_data = signal.resample(audio_data, number_of_samples)
 
@@ -353,7 +358,7 @@ def format_weather_info(data):
     wind_speed = current['wind_speed']
     
     # Construct weather message
-    message = f"\nCurrent weather conditions:"
+    message = "\nCurrent weather conditions:"
     message += f"\nTemperature: {temp}°C (feels like {feels_like}°C)"
     message += f"\nConditions: {weather}"
     message += f"\nHumidity: {humidity}%"
@@ -369,9 +374,10 @@ def on_weather_change():
         speak_text(weather)
         
     except Exception as e:
-        print(f"\nError getting weather: {str(e)}\n")
+        print(f"\nError getting weather: {e!s}\n")
 
 from openai import OpenAI
+
 
 def weather_perplexity():
     client = OpenAI(api_key=PERPLEXITY_API_KEY, base_url="https://api.perplexity.ai")
@@ -406,7 +412,7 @@ def weather_perplexity():
         return weather_info
     
     except Exception as e:
-        return f"Error getting weather information: {str(e)}"
+        return f"Error getting weather information: {e!s}"
     
 
 def ask_perplexity(question):
@@ -434,7 +440,7 @@ def ask_perplexity(question):
         return response.choices[0].message.content
     
     except Exception as e:
-        return f"Error getting response: {str(e)}"
+        return f"Error getting response: {e!s}"
 
 
 # speak_text_stream("hey my name is beff jezos I scam retards")

@@ -1,0 +1,27 @@
+[ROBOT]
+  WHEEL_RADIUS_M = 0.08255
+  WHEEL_DIST_M = 0.21
+
+[MOTOR_CONTROL]
+  SERIAL_PORT = "/dev/ttyAMA1"
+  ENABLE_MOTOR_CONTROL = "1"
+  MAX_SPEED_MPS = 1.0
+  MAX_TORQUE_NM = 4.0
+  LEFT_MOTOR_DIR = 1
+  RIGHT_MOTOR_DIR = -1
+  LEFT_MOTOR_AXIS = 0
+  RIGHT_MOTOR_AXIS = 1
+
+[BALANCE]
+  SIGNIFICANT_VELOCITY_MPS = 0.2
+  IDLE_TIMEOUT_S = 5
+  IDLE_BALANCE_DURATION_S = 1
+
+[RERUN]
+  HOST_IP_ADDRESS = "10.0.0.229"
+
+[LOCALIZATION]
+  BASE_CONFIG_LOC = "quickstart/nodes/localization/config/base_loc_conf.yaml"
+
+[MAPPING]
+  BASE_CONFIG_LOC = "quickstart/nodes/mapping/config/base_map_conf.yaml"

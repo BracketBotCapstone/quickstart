@@ -1,21 +1,22 @@
-import paho.mqtt.client as mqtt
-import pygame
 import os
-from pathlib import Path
-import alsaaudio
-import threading
-import time
 import subprocess
 
 # this will livestream the camera to the web
 # go to http://<robot_ip>:8080/game_interface.html to see the stream, control robot, and play sounds
 # make sure to run setup_live_video.sh on the robot before running this script to install streaming dependencies
 # you might also need to change the camera device /dev/video4, but sometimes it's /dev/video5
-
 import sys
-import os
+import threading
+import time
+from pathlib import Path
+
+import alsaaudio
+import paho.mqtt.client as mqtt
+import pygame
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from setup.set_alsa_volume import set_alsa_volume
+
 set_alsa_volume()
 
 

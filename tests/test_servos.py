@@ -1,4 +1,5 @@
 import time
+
 from rpi_hardware_pwm import HardwarePWM
 
 # Initialize PWM on the GPIO pin at 50Hz (20ms period)

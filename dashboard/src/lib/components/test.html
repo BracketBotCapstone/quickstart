@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Robot Controller</title>
+    <!-- Include MQTT.js from CDN -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <style>
+        .control-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 80px);
+            gap: 10px;
+            margin: 20px;
+        }
+        .control-button {
+            width: 80px;
+            height: 80px;
+            font-size: 24px;
+            /* Disable text selection/highlighting on mobile */
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            /* Prevent default touch behaviors */
+            touch-action: manipulation;
+        }
+        .speech-box input {
+            /* Make input more touch-friendly */
+            font-size: 16px;
+            padding: 8px;
+            width: 200px;
+        }
+        .speech-box button {
+            /* Make speech button more touch-friendly */
+            font-size: 16px;
+            padding: 8px 16px;
+            margin-left: 8px;
+        }
+        #status {
+            margin: 20px;
+            color: red;
+            /* Make status text more readable */
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">Disconnected</div>
+    
+    <div class="control-pad">
+        <button class="control-button" ontouchstart="sendVelocity(0.5, -1.0)" ontouchend="sendVelocity(0, 0)"> </button>
+        <button class="control-button" ontouchstart="sendVelocity(0.5, 0)" ontouchend="sendVelocity(0, 0)">^</button>
+        <button class="control-button" ontouchstart="sendVelocity(0.5, 1.0)" ontouchend="sendVelocity(0, 0)"> </button>
+        <button class="control-button" ontouchstart="sendVelocity(0, -1.0)" ontouchend="sendVelocity(0, 0)"><</button>
+        <button class="control-button" ontouchstart="sendVelocity(0, 0)" ontouchend="sendVelocity(0, 0)">+</button>
+        <button class="control-button" ontouchstart="sendVelocity(0, 1.0)" ontouchend="sendVelocity(0, 0)">></button>
+        <button class="control-button" ontouchstart="sendVelocity(-0.5, -1.0)" ontouchend="sendVelocity(0, 0)"> </button>
+        <button class="control-button" ontouchstart="sendVelocity(-0.5, 0)" ontouchend="sendVelocity(0, 0)">v</button>
+        <button class="control-button" ontouchstart="sendVelocity(-0.5, 1.0)" ontouchend="sendVelocity(0, 0)"> </button>
+    </div>
+
+    <div class="speech-box">
+        <input type="text" id="speechText" placeholder="Enter text to speak">
+        <button onclick="sendSpeech()">Speak</button>
+    </div>
+
+    <script>
+        // MQTT client setup
+        const client = mqtt.connect('wss://shrek-desktop.local:9001');
+        
+        client.on('connect', function () {
+            document.getElementById('status').style.color = 'green';
+            document.getElementById('status').innerHTML = 'Connected';
+            client.subscribe('/mapping/traversability_grid');
+        });
+
+        client.on('error', function (error) {
+            document.getElementById('status').style.color = 'red';
+            document.getElementById('status').innerHTML = 'Connection failed: ' + error;
+        });
+
+        client.on('message', function (topic, message) {
+            console.log("Message received:", message.toString());
+        });
+
+            // Add s    tate tracking for keys
+        const keyState = {
+            ArrowUp: false,
+            ArrowDown: false,
+            ArrowLeft: false,
+            ArrowRight: false
+        };
+
+        let currentLinear = 0;
+        let currentAngular = 0;
+
+        // Update keyboard controls
+        document.addEventListener('keydown', function(event) {
+            if (keyState.hasOwnProperty(event.key)) {
+                keyState[event.key] = true;
+                updateVelocity();
+            } else if (event.key === ' ') {  // spacebar
+                // Reset everything
+                Object.keys(keyState).forEach(key => keyState[key] = false);
+                sendVelocity(0, 0);
+            }
+        });
+
+        document.addEventListener('keyup', function(event) {
+            if (keyState.hasOwnProperty(event.key)) {
+                keyState[event.key] = false;
+                updateVelocity();
+            }
+        });
+
+        function updateVelocity() {
+            // Calculate linear velocity (forward/backward)
+            let linear = 0;
+            if (keyState.ArrowUp) linear += 0.5;
+            if (keyState.ArrowDown) linear -= 0.5;
+
+            // Calculate angular velocity (rotation)
+            let angular = 0;
+            if (keyState.ArrowLeft) angular -= 1.0;
+            if (keyState.ArrowRight) angular += 1.0;
+
+            sendVelocity(linear, angular);
+        }
+
+        // Sending messages
+        function sendVelocity(linear, angular) {
+            const payload = JSON.stringify({
+                linear: linear,
+                angular: angular
+            });
+            client.publish("robot/velocity", payload);
+        }
+
+        function sendSpeech() {
+            const text = document.getElementById('speechText').value;
+            client.publish("robot/speak", text);
+            document.getElementById('speechText').value = '';
+        }
+    </script>
+</body>
+</html>
+
+Ok here is a script that connects to the mqtt from my local. 

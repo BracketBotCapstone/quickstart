@@ -1,0 +1,19 @@
+config_params:
+  imu_config_loc: "quickstart/nodes/localization/config/imu_params_conf.yaml"
+
+physical_params:
+  gravity_up: false
+  r_0: [0, 0, 0]
+  phi_0: [0, 0, 0]
+
+uncertainty_params:
+  R_enc: 0.0001
+  R_enc_pseudo: 0.0000001
+  P_pos: 1e-6
+  P_vel: 1e-6
+  P_phi: 1e-4
+  P_gyro_bias: 1e-6
+  P_accel_bias: .5
+
+initialization_params:
+  static_init_period: 1.0

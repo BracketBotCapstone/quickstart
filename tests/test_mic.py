@@ -1,8 +1,9 @@
-import pyaudio
-import wave
-import time
-import sys
 import select
+import sys
+import time
+import wave
+
+import pyaudio
 
 # Audio parameters
 CHUNK = 2048  # Number of frames per buffer

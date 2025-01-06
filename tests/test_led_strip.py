@@ -3,8 +3,10 @@
 # The adaruit neopixel library doesnt work on the PI5, someone wrote this: https://pypi.org/project/Pi5Neo/
 # use the MOSI pin (GPIO10) on PI5 for this script to work.
 
-from pi5neo import Pi5Neo
 import time
+
+from pi5neo import Pi5Neo
+
 
 def rainbow_cycle(neo, delay=0.1):
     colors = [

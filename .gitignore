@@ -1,18 +1,187 @@
-# Python cache files
-__pycache__/
+# Build Related Files
+# Bazel build files
+bazel-*
+user.bazelrc
+auth.bazelrc
+MODULE.bazel.lock
+
+# Doxygen output
+dox-*
+DoxygenWarnings-*
+
+# Python bytecode
 *.pyc
-*.pyo
-*.pyd
+__pycache__/
 
-# Generated files
-*.png
-*.txt
-*.err
-*.log
+# Artifacts and logs
+artifacts/
+testlogs/
+profile.gz
+install/
+targets_incompatible_with_*
+logs/
 
-# Config and environment files
-motor_dir.json
+# Ruff cache
+.ruff_cache/
+
+# IDE Related Files
+.clangd
+.clwb
 .env
+.ipynb_checkpoints/
+*.log
+pyrightconfig.json
+.idea/
 
-# Device tree overlay
-pwm-pi5.dtbo
+# Data Related Files
+*.bag
+*.osm
+*.mcap
+
+# Cargo Generated Files
+/target/
+examples/**/*.txt
+**/*.rs.bk
+
+# Dora Specific Files
+**/*.arrow
+*.pt
+out/
+
+# Device Tree Blob Overlays
+*.dtbo
+
+# Python Virtual Environment
+venv/
+.venv/
+
+# Compiled Object Files
+*.o
+*.slo
+*.lo
+*.obj
+
+# CMake artifacts
+build/
+bin/
+
+# Additional Entries
+*.TXT
+recordings/bracket_bot/
+*.stl
+*.part
+!*_collision*.stl
+constants.*
+utils/messages.h
+utils/messages.py
+
+# Prerequisites
+*.d
+build/
+
+# Compiled Dynamic Libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran Module Files
+*.mod
+*.smod
+
+# Compiled Static Libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Debugging Files
+*.gdb*
+*.dblite
+
+# Byte-compiled / Optimized / DLL Files
+*.py[cod]
+*$py.class
+
+# C Extensions
+*.so
+
+# Distribution / Packaging Files
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller Files
+*.manifest
+*.spec
+
+# Installer Logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit Test / Coverage Reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django Specific Files
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask Specific Files
+instance/
+.webassets-cache
+
+# Scrapy Specific Files
+.scrapy/
+
+# Sphinx Documentation
+docs/_build/
+
+# PyBuilder Files
+.pybuilder/
+target/
+
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# IPython Configuration
+profile_default/
+ipython_config.py
+
+# Miscellaneous
+.lgd-nfy0

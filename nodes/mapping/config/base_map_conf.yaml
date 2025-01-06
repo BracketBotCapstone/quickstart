@@ -1,0 +1,29 @@
+config_params:
+  realsense_config_loc: "quickstart/nodes/mapping/config/realsense_phys_config.yaml"
+
+  update_rate: 10 # Hz
+
+map_params:
+  min_cell_width: 0.05
+  threshold_delta: 2.0
+  range_sigma: .03
+  scaling_free: .4
+  scaling_occupied: .8
+  min_range: 0.3
+  max_range: 2.5
+  max_update_resolution: 0.05
+  block_removal_distance: 30
+  pruning_delta: 2.0
+
+  output_map_path: "quickstart/nodes/mapping/maps/"
+
+grid_params:
+  default_planar_spread: 20
+  grid_cell_size: .05
+  z_lower_lim: .05
+  z_lower_body_limit: .15
+  body_radius: .14
+  body_radius_epsilon: 0.02
+  z_upper_lim_epsilon: .1
+  probability_thresh: .75
+

@@ -1,23 +1,23 @@
 import os
-import time
 import shutil
-import boto3
-import pyrealsense2 as rs
-import numpy as np
-import cv2
+import time
+import wave
 from io import BytesIO
+from tempfile import NamedTemporaryFile
+
+import alsaaudio
+import boto3
+import cv2
+import dotenv
+import numpy as np
+import openai
+import pyaudio
+import pyrealsense2 as rs
 import sounddevice as sd
 import soundfile as sf
-from scipy import signal
-import dotenv
 from botocore.exceptions import ClientError
 from elevenlabs import ElevenLabs
-import pyaudio
-import wave
-import openai
-from tempfile import NamedTemporaryFile
-import subprocess
-import alsaaudio
+from scipy import signal
 
 dotenv.load_dotenv()
 
@@ -91,7 +91,7 @@ def record_name(duration=3):
     print(f"Recording for {duration} seconds...")
     frames = []
     
-    for _ in range(0, int(RATE / CHUNK * duration)):
+    for _ in range(int(RATE / CHUNK * duration)):
         data = stream.read(CHUNK)
         frames.append(data)
     

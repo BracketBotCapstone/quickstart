@@ -1,0 +1,22 @@
+# a configuration file for the Adafruit LSM6DS3TR-C 6DOF IMU - https://cdn-shop.adafruit.com/product-files/4503/4503_LSM6DS3TR-C_datasheet.pdf
+imu_params:
+  update_rate: 200
+
+  # continuous-time IMU noise parameters (see https://github.com/ethz-asl/kalibr/wiki/IMU-Noise-Model)
+  sigma_gyro_ct: 1.745e-3
+  sigma_accel_ct: 6.0e-2
+  sigma_gyro_bias_ct: 4.848e-5
+  sigma_accel_bias_ct: 1.5e-4
+
+  # components of T_bi, where F_{b} represents the robot body frame, and F_{i} is the IMU frame
+  r_bi: [-0.054, 0, 0]
+  phi_bi: [0, 0, -1.5707963]
+
+  # unit specification
+  accel_units: 'm/s^2'
+  gyro_units: 'rad/s'
+  # accel_units: 'g'
+  # gyro_units: 'deg/s'
+
+  # spline specification for angular acceleration
+  spline_samples: 4
