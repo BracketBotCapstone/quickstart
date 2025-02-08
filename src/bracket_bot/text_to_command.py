@@ -104,11 +104,6 @@ if __name__ == "__main__":
         description="drive forward x metres", 
         params={"x": drive_distance}
     )
-    drive_until = CommandInput(
-        intent="drive_until", 
-        description="drive forward x metres", 
-        params={"x": drive_distance}
-    )
 
     resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive forward 2 metres")
     print(resp)
@@ -124,3 +119,11 @@ if __name__ == "__main__":
 
     resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive 2 metres. flip a coin. if heads, go left 2 metres. else, go right 2 metres.")
     print(resp)
+
+    def rotate(x):
+        print(f"the robot is rotating {x} degrees")
+
+    def drive_forward(x):
+        print(f"the robot is driving {x} metres")
+
+    exec(resp.code)
