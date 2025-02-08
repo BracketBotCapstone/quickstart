@@ -1,10 +1,6 @@
 from anthropic import Anthropic
 from dotenv import load_dotenv
-from pydantic import BaseModel, create_model
-from typing import Any, Dict, List
-
-from enum import Enum
-
+from typing import Any, Dict
 import instructor
 
 import os
@@ -25,32 +21,13 @@ class CommandInput(BaseModel):
     intent: str
     description: str
     params: Dict[str, ParamInput]
-    fn: Any
 
     def __repr__(self):
         return f"{self.intent}({''.join([f'{k}: {str(v)}' for (k, v) in self.params.items()])}): {self.description}"
-
-
-class ParamOutput(BaseModel):
-    value: Any
-
-
-class CommandOutput(BaseModel):
-    intent: str
-    params: Dict[str, ParamOutput]
-    fn: Any = None
-
-    def __call__(self):
-        return self.fn(**{n: p.value for (n, p) in self.params.items()})
     
 
 class Action(BaseModel):
-    commands: List[CommandOutput]
-
-    def __call__(self):
-        for cmd in self.commands:
-            cmd()
-        print("*** done! ***")
+    code: str
 
 
 class ActionBuilder:
@@ -64,9 +41,18 @@ class ActionBuilder:
             "content": f"""\
             You are a robot action classifier. You will also be given a list of commands (atomic actions)
             which the robot can perform, and the parameters that action needs. You will then be given a string of text
-            from a user, describing the action it wants the robot to take. Your job is to return a list of 
-            commands which the robot should execute, and their parameters (populated in the value field of the Param object) 
-            in order to execute the action the user describes. Do not return any explanation, just the list of commands.
+            from a user, describing the action it wants the robot to take. Your job is to write python code
+            which the robot should execute. Write in each function and its parameters as keyword arguments
+            in order to execute the action the user describes. The functions do not return anything.
+            
+            DO NOT DO ANY OF THE FOLLOWING:
+            - use or import libraries which are not builtin to base python (e.g., no NumPy or cv2)
+            - put the code in a function or add "if __name__ == '__main__'"
+            - add comments of any kind
+            
+            ONLY USE PRIMITIVE CONSTRUCTS LIKE IF STATEMENTS IF NEEDED.
+            
+            Do not return any explanation, just the program.
 
             List of possible commands and parameters:
             {"\n".join([str(c) for c in self.commands.values()])}
@@ -95,9 +81,6 @@ class ActionBuilder:
             response_model=Action
         )
 
-        for cmd in resp.commands:
-            cmd.fn = self.commands[cmd.intent].fn
-
         return resp
     
     
@@ -113,32 +96,30 @@ if __name__ == "__main__":
     rotate_degrees = CommandInput(
         intent="rotate", 
         description="rotate x degrees", 
-        params={"x": rotation_degrees}, 
-        fn=lambda x: print(f"the robot is rotating {x} degrees to the {'left' if x < 0 else 'right'}")
+        params={"x": rotation_degrees}
     )
     drive_forward = CommandInput(
         intent="drive_forward", 
         description="drive forward x metres", 
-        params={"x": drive_distance}, 
-        fn=lambda x: print(f"the robot is driving {x} metres forward")
+        params={"x": drive_distance}
+    )
+    drive_until = CommandInput(
+        intent="drive_until", 
+        description="drive forward x metres", 
+        params={"x": drive_distance}
     )
 
     resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive forward 2 metres")
-
-    print(resp.commands)
-    resp()
+    print(resp)
 
     resp = ActionBuilder(drive_forward, rotate_degrees).classify("rotate the robot 60 degrees to the left")
-
-    print(resp.commands)
-    resp()
+    print(resp)
 
     resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive forward 2 metres then rotate the robot 20 degrees to the right")
-
-    print(resp.commands)
-    resp()
+    print(resp)
 
     resp = ActionBuilder(drive_forward, rotate_degrees).classify("trace out a square with sides that are 1 metre")
+    print(resp)
 
-    print(resp.commands)
-    resp()
+    resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive 2 metres. flip a coin. if heads, go left 2 metres. else, go right 2 metres.")
+    print(resp)

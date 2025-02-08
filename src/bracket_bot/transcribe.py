@@ -1,21 +1,12 @@
-from anthropic import Anthropic
 from dotenv import load_dotenv
-from pydantic import BaseModel
 from transformers import pipeline
 from transformers.pipelines.audio_utils import ffmpeg_microphone_live
-from typing import Any, Dict, List
 
-from enum import Enum
-
-import instructor
-
-import os
 import sys
 
 
 load_dotenv()
 
-# Add error handling for model loading
 
 class Transcriber:
 
