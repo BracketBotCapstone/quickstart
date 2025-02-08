@@ -50,6 +50,7 @@ class Action(BaseModel):
     def __call__(self):
         for cmd in self.commands:
             cmd()
+        print("*** done! ***")
 
 
 class ActionBuilder:
@@ -103,19 +104,41 @@ class ActionBuilder:
 if __name__ == "__main__":
     rotation_degrees = ParamInput(
         return_type=float, 
-        description="robot rotation amount in degrees"
+        description="robot rotation amount in degrees, right is positive and left is negative"
     )
     drive_distance = ParamInput(
         return_type=float, 
         description="distance to go in metres"
     )
+    rotate_degrees = CommandInput(
+        intent="rotate", 
+        description="rotate x degrees", 
+        params={"x": rotation_degrees}, 
+        fn=lambda x: print(f"the robot is rotating {x} degrees to the {'left' if x < 0 else 'right'}")
+    )
     drive_forward = CommandInput(
         intent="drive_forward", 
         description="drive forward x metres", 
         params={"x": drive_distance}, 
-        fn=lambda x: print(x)
+        fn=lambda x: print(f"the robot is driving {x} metres forward")
     )
 
-    resp = ActionBuilder(drive_forward).classify("drive forward 2 metres")
+    resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive forward 2 metres")
 
-    print(resp())
+    print(resp.commands)
+    resp()
+
+    resp = ActionBuilder(drive_forward, rotate_degrees).classify("rotate the robot 60 degrees to the left")
+
+    print(resp.commands)
+    resp()
+
+    resp = ActionBuilder(drive_forward, rotate_degrees).classify("drive forward 2 metres then rotate the robot 20 degrees to the right")
+
+    print(resp.commands)
+    resp()
+
+    resp = ActionBuilder(drive_forward, rotate_degrees).classify("trace out a square with sides that are 1 metre")
+
+    print(resp.commands)
+    resp()
