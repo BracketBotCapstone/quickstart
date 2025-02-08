@@ -1,0 +1,93 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bracket-bot"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = "3.10"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "AbhiJ2706", email = "43829700+AbhiJ2706@users.noreply.github.com" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "anthropic",
+    "numpy",
+    "opencv-python",
+    "numpy",
+    "matplotlib",
+    "pandas",
+    "paho-mqtt",
+    "sshkeyboard",
+    "transformers",
+    "pydantic",
+    "python-dotenv"
+]
+
+[project.urls]
+Documentation = "https://github.com/unknown/bracket-bot#readme"
+Issues = "https://github.com/unknown/bracket-bot/issues"
+Source = "https://github.com/unknown/bracket-bot"
+
+[tool.hatch.version]
+path = "src/bracket_bot/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "coverage[toml]>=6.5",
+  "pytest",
+]
+[tool.hatch.envs.default.scripts]
+test = "pytest {args:tests}"
+test-cov = "coverage run -m pytest {args:tests}"
+cov-report = [
+  "- coverage combine",
+  "coverage report",
+]
+cov = [
+  "test-cov",
+  "cov-report",
+]
+
+[[tool.hatch.envs.all.matrix]]
+python = ["3.8", "3.9", "3.10"]
+
+[tool.hatch.envs.types]
+dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/bracket_bot tests}"
+
+[tool.coverage.run]
+source_pkgs = ["bracket_bot", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/bracket_bot/__about__.py",
+]
+
+[tool.coverage.paths]
+bracket_bot = ["src/bracket_bot", "*/bracket-bot/src/bracket_bot"]
+tests = ["tests", "*/bracket-bot/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
