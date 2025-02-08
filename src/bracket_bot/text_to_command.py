@@ -1,5 +1,6 @@
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from typing import Any, Dict
 import instructor
 
