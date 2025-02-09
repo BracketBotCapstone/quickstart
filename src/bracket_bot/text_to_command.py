@@ -39,7 +39,7 @@ class ActionBuilder:
     def system_prompt(self):
         return {
             "role": "system",
-            "content": f"""\
+            "content": f"""
             You are a robot action classifier. You will also be given a list of commands (atomic actions)
             which the robot can perform, and the parameters that action needs. You will then be given a string of text
             from a user, describing the action it wants the robot to take. Your job is to write python code
@@ -51,12 +51,11 @@ class ActionBuilder:
             - put the code in a function or add "if __name__ == '__main__'"
             - add comments of any kind
             
-            ONLY USE PRIMITIVE CONSTRUCTS LIKE IF STATEMENTS IF NEEDED.
             
             Do not return any explanation, just the program.
 
             List of possible commands and parameters:
-            {"\n".join([str(c) for c in self.commands.values()])}
+            {" ".join([str(c) for c in self.commands.values()])}
 
             User requested action:
             """,
