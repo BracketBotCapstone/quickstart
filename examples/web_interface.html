@@ -45,17 +45,41 @@
 </head>
 <body>
     <div id="status">Disconnected</div>
-    
+
+    <p style="margin: 20px;">
+        Use <b>W</b>, <b>A</b>, <b>S</b>, <b>D</b> to move/turn.<br>
+        Press <b>Q</b> to stop movement.<br>
+        Releasing any key also stops the robot.
+    </p>
+
     <div class="control-pad">
-        <button class="control-button" ontouchstart="sendVelocity(0.35, -1.0)" ontouchend="sendVelocity(0, 0)"> </button>
-        <button class="control-button" ontouchstart="sendVelocity(0.35, 0)" ontouchend="sendVelocity(0, 0)">^</button>
-        <button class="control-button" ontouchstart="sendVelocity(0.35, 1.0)" ontouchend="sendVelocity(0, 0)"> </button>
-        <button class="control-button" ontouchstart="sendVelocity(0, -1.0)" ontouchend="sendVelocity(0, 0)"><</button>
-        <button class="control-button" ontouchstart="sendVelocity(0, 0)" ontouchend="sendVelocity(0, 0)">+</button>
-        <button class="control-button" ontouchstart="sendVelocity(0, 1.0)" ontouchend="sendVelocity(0, 0)">></button>
-        <button class="control-button" ontouchstart="sendVelocity(-0.35, -1.0)" ontouchend="sendVelocity(0, 0)"> </button>
-        <button class="control-button" ontouchstart="sendVelocity(-0.35, 0)" ontouchend="sendVelocity(0, 0)">v</button>
-        <button class="control-button" ontouchstart="sendVelocity(-0.35, 1.0)" ontouchend="sendVelocity(0, 0)"> </button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(0.3, -1.3)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(0.3, -1.3)" onmouseup="sendVelocity(0, 0)"> </button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(0.3, 0)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(0.3, 0)" onmouseup="sendVelocity(0, 0)">^</button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(0.3, 1.3)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(0.3, 1.3)" onmouseup="sendVelocity(0, 0)"> </button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(0, -1.3)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(0, -1.3)" onmouseup="sendVelocity(0, 0)"><</button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(0, 0)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(0, 0)" onmouseup="sendVelocity(0, 0)">+</button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(0, 1.3)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(0, 1.3)" onmouseup="sendVelocity(0, 0)">></button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(-0.3, -1.3)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(-0.3, -1.3)" onmouseup="sendVelocity(0, 0)"> </button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(-0.3, 0)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(-0.3, 0)" onmouseup="sendVelocity(0, 0)">v</button>
+        <button class="control-button" 
+                ontouchstart="sendVelocity(-0.3, 1.3)" ontouchend="sendVelocity(0, 0)"
+                onmousedown="sendVelocity(-0.3, 1.3)" onmouseup="sendVelocity(0, 0)"> </button>
     </div>
 
     <div class="speech-box">
@@ -115,6 +139,40 @@
                 updateVelocity();
             }
         });
+
+        function onKeyDown(event) {
+            const key = event.key.toLowerCase();
+            switch (key) {
+                case 'w':
+                    sendVelocity(0.5, 0.0);
+                    break;
+                case 's':
+                sendVelocity(-0.5, 0.0);
+                    break;
+                case 'a':
+                sendVelocity(0.0, 45.0);
+                    break;
+                case 'd':
+                sendVelocity(0.0, -45.0);
+                    break;
+                case 'q':
+                sendVelocity(0.0, 0.0);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        function onKeyUp(event) {
+            const key = event.key.toLowerCase();
+            if (['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright'].includes(key)) {
+                sendVelocity(0.0, 0.0);
+            }
+        }
+
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
+
 
         function updateVelocity() {
             // Calculate linear velocity (forward/backward)
