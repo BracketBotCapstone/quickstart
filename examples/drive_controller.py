@@ -37,9 +37,10 @@ class RobotController:
         # Constants
         self.WHEEL_DIAMETER = 0.165  # meters
         self.WHEEL_CIRCUMFERENCE = self.WHEEL_DIAMETER * math.pi
-        self.MAX_SPEED = 0.5  # m/s
+        self.MAX_SPEED = 0.3  # m/s
         self.ACCEL_RATE = 0.15
-        self.DECEL_DISTANCE = 0.15  # meters
+        self.DECEL_FACTOR = 1.2  # New parameter for controlling deceleration curve
+        self.DECEL_DISTANCE = 0.8  # meters
         self.TURN_SPEED = 0.2
         self.YAW_THRESHOLD = 2.0  # degrees
 
@@ -76,14 +77,23 @@ class RobotController:
             distance_remaining = (target_pos - current_pos) * self.WHEEL_CIRCUMFERENCE
             
             if distance_remaining < self.DECEL_DISTANCE:
-                current_speed = max(0.05, (distance_remaining / self.DECEL_DISTANCE) * self.MAX_SPEED)
+                # Non-linear deceleration curve
+                progress = distance_remaining / self.DECEL_DISTANCE
+                decel_factor = math.pow(progress, self.DECEL_FACTOR)
+                current_speed = decel_factor * self.MAX_SPEED
+                
+                # Cut off and stop if speed gets too low
+                if current_speed < 0.1:
+                    self.stop_motors()
+                    break
+                
+                print(f"Decelerating to {current_speed:.3f} m/s")
                 self.motor_controller.set_speed_mps_left(current_speed)
                 self.motor_controller.set_speed_mps_right(current_speed)
                 
             if current_pos >= target_pos:
                 break
             time.sleep(0.01)
-
         self.stop_motors()
 
     def turn_degrees(self, degrees):
