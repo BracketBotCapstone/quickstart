@@ -49,8 +49,8 @@ class DrivePathNode(object):
 
         self.loop_rate_hz = 30
 
-        self.prev_goal_pose = None
         self.path_pose_list = None
+        self.path_grid_coords_list = None
 
     def run(self):
         self.mqtt_subscriber.start()
@@ -77,8 +77,11 @@ class DrivePathNode(object):
                     grid_start_pose_y = None
 
                 # Get target point message
+                target_point_changed = False
                 target_point_msg = self.mqtt_subscriber.get_latest_message(TOPIC_TARGET_POINT)
                 if target_point_msg is not None:
+                    if self.target_point_msg is None or self.target_point_msg.x_grid != target_point_msg.x_grid or self.target_point_msg.y_grid != target_point_msg.y_grid:
+                        target_point_changed = True
                     self.target_point_msg = target_point_msg
 
                 if self.target_point_msg is not None:
@@ -95,37 +98,51 @@ class DrivePathNode(object):
                             self.target_point_msg = None
                             self.path_pose_list = None
                             self.traversability_grid_msg = None
+                            self.path_grid_coords_list = None
 
                             print("Target point has been reached, not replanning.")
                             continue
 
                 # Check if it's time to replan
-                if time.time() - replan_time > 10.0 and self.target_point_msg is not None and self.traversability_grid_msg is not None and self.robot_pose_grid_coords_msg is not None:
-
-                    print(f"Attempting to plan from ({grid_start_pose_x}, {grid_start_pose_y}) to ({grid_goal_pose_x}, {grid_goal_pose_y})")
+                if (time.time() - replan_time > 10.0) and \
+                    self.target_point_msg is not None and \
+                    self.traversability_grid_msg is not None and \
+                    self.robot_pose_grid_coords_msg is not None:
 
                     # Process traversability grid
                     traversability_grid = process_traversability_grid_msg(self.traversability_grid_msg)
 
-                    # Initialize D* algorithm and run pathfinding
-                    self.dstar.initialize(traversability_grid, (grid_start_pose_y, grid_start_pose_x), (grid_goal_pose_y, grid_goal_pose_x))
-                    path = self.dstar.run()
+                    new_obstacle_in_path = False
+                    if self.path_grid_coords_list is not None:
+                        for grid_coords in self.path_grid_coords_list:
+                            if traversability_grid[grid_coords[0], grid_coords[1]] == 1:
+                                new_obstacle_in_path = True
+                                break
 
-                    if path:
-                        # Convert path to world coordinates
-                        self.path_pose_list = [convert_grid_coords_to_pose(path[i], self.grid_cell_size_m, self.grid_width_m) for i in range(len(path))]
+                    if target_point_changed or new_obstacle_in_path:
 
-                        print("Path found:")
-                        for i in range(0, len(self.path_pose_list)):
-                            print(f"Pose {i}: {self.path_pose_list[i]}")
-                        # self.dstar.plot_path()
-                    else:
-                        self.path_pose_list = None
-                        # self.dstar.plot_path()
-                        print("No path found")
-                        continue
+                        print(f"Attempting to plan from ({grid_start_pose_x}, {grid_start_pose_y}) to ({grid_goal_pose_x}, {grid_goal_pose_y})")
 
-                    replan_time = time.time()
+                        # Initialize D* algorithm and run pathfinding
+                        self.dstar.initialize(traversability_grid, (grid_start_pose_y, grid_start_pose_x), (grid_goal_pose_y, grid_goal_pose_x))
+                        path = self.dstar.run()
+                        self.path_grid_coords_list = path
+
+                        if path:
+                            # Convert path to world coordinates
+                            self.path_pose_list = [convert_grid_coords_to_pose(path[i], self.grid_cell_size_m, self.grid_width_m) for i in range(len(path))]
+
+                            print("Path found:")
+                            for i in range(0, len(self.path_pose_list)):
+                                print(f"Pose {i}: {self.path_pose_list[i]}")
+                            # self.dstar.plot_path()
+                        else:
+                            self.path_pose_list = None
+                            # self.dstar.plot_path()
+                            print("No path found")
+                            continue
+
+                        replan_time = time.time()
 
                 # Publish path plan message
                 if self.path_pose_list is not None:
