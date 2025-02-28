@@ -24,7 +24,7 @@ class ODriveUART:
         """
         self.bus = serial.Serial(
             port=port,
-            baudrate=115200,
+            baudrate=460800,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
             bytesize=serial.EIGHTBITS,

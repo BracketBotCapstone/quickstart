@@ -52,6 +52,8 @@ class DrivePathNode(object):
         self.path_pose_list = None
         self.path_grid_coords_list = None
 
+        self.target_point_changed = False
+
     def run(self):
         self.mqtt_subscriber.start()
         self.mqtt_publisher.run()
@@ -77,11 +79,10 @@ class DrivePathNode(object):
                     grid_start_pose_y = None
 
                 # Get target point message
-                target_point_changed = False
                 target_point_msg = self.mqtt_subscriber.get_latest_message(TOPIC_TARGET_POINT)
                 if target_point_msg is not None:
                     if self.target_point_msg is None or self.target_point_msg.x_grid != target_point_msg.x_grid or self.target_point_msg.y_grid != target_point_msg.y_grid:
-                        target_point_changed = True
+                        self.target_point_changed = True
                     self.target_point_msg = target_point_msg
 
                 if self.target_point_msg is not None:
@@ -119,7 +120,7 @@ class DrivePathNode(object):
                                 new_obstacle_in_path = True
                                 break
 
-                    if target_point_changed or new_obstacle_in_path:
+                    if self.target_point_changed or new_obstacle_in_path:
 
                         print(f"Attempting to plan from ({grid_start_pose_x}, {grid_start_pose_y}) to ({grid_goal_pose_x}, {grid_goal_pose_y})")
 
@@ -143,6 +144,7 @@ class DrivePathNode(object):
                             continue
 
                         replan_time = time.time()
+                        self.target_point_changed = False
 
                 # Publish path plan message
                 if self.path_pose_list is not None:

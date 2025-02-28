@@ -87,8 +87,19 @@
     </div>
 
     <div class="speech-box">
-        <input type="text" id="speechText" placeholder="Enter text to speak">
-        <button onclick="sendSpeech()">Speak</button>
+        <input type="number" id="xCoord" placeholder="X coordinate" style="width: 100px;">
+        <input type="number" id="yCoord" placeholder="Y coordinate" style="width: 100px;">
+        <button onclick="sendTargetPoint()">Set Target</button>
+    </div>
+
+    <!-- Add robot position display -->
+    <div id="robot-position" style="margin: 20px; font-size: 16px;">
+        <strong>Robot Position:</strong> X: -- Y: --
+    </div>
+
+    <!-- Add coordinate display for hover -->
+    <div id="hover-coordinates" style="margin: 20px; font-size: 16px;">
+        <strong>Hover Position:</strong> X: -- Y: --
     </div>
 
     <!-- Add a new div to display the grid -->
@@ -144,6 +155,8 @@
                 }
             } else if (topic === '/mapping/robot_pose_grid_coords') {
                 lastRobotPose = JSON.parse(message.toString()); // Save the robot pose
+                // Update the robot position display
+                updateRobotPositionDisplay(lastRobotPose);
             }
         });
 
@@ -181,19 +194,19 @@
             const key = event.key.toLowerCase();
             switch (key) {
                 case 'w':
-                    sendVelocity(0.5, 0.0);
+                    sendVelocity(0.15, 0.0);
                     break;
                 case 's':
-                sendVelocity(-0.5, 0.0);
+                    sendVelocity(-0.15, 0.0);
                     break;
                 case 'a':
-                sendVelocity(0.0, 45.0);
+                    sendVelocity(0.0, 1.3);
                     break;
                 case 'd':
-                sendVelocity(0.0, -45.0);
+                    sendVelocity(0.0, -1.3);
                     break;
                 case 'q':
-                sendVelocity(0.0, 0.0);
+                    sendVelocity(0.0, 0.0);
                     break;
                 default:
                     break;
@@ -213,8 +226,8 @@
         function updateVelocity() {
             // Calculate linear velocity (forward/backward)
             let linear = 0;
-            if (keyState.ArrowUp) linear += 0.2;
-            if (keyState.ArrowDown) linear -= 0.2;
+            if (keyState.ArrowUp) linear += 0.15;
+            if (keyState.ArrowDown) linear -= 0.15;
 
             // Calculate angular velocity (rotation)
             let angular = 0;
@@ -235,10 +248,34 @@
             client.publish("/control/target_velocity", payload);
         }
 
-        function sendSpeech() {
-            const text = document.getElementById('speechText').value;
-            client.publish("robot/speak", text);
-            document.getElementById('speechText').value = '';
+        function sendTargetPoint() {
+            const xGrid = parseInt(document.getElementById('xCoord').value);
+            const yGrid = parseInt(document.getElementById('yCoord').value);
+            
+            if (isNaN(xGrid) || isNaN(yGrid)) {
+                alert('Please enter valid coordinates');
+                return;
+            }
+
+            const payload = JSON.stringify({
+                timestamp: Date.now(),
+                x_grid: xGrid,
+                y_grid: yGrid
+            });
+            
+            client.publish("/planning/target_point", payload);
+            
+            // Clear the input fields
+            document.getElementById('xCoord').value = '';
+            document.getElementById('yCoord').value = '';
+        }
+
+        // Add function to update robot position display
+        function updateRobotPositionDisplay(pose) {
+            if (pose && pose.x_grid !== undefined && pose.y_grid !== undefined) {
+                document.getElementById('robot-position').innerHTML = 
+                    `<strong>Robot Position:</strong> X: ${pose.x_grid} Y: ${pose.y_grid}`;
+            }
         }
 
         function displayGrid(data, robotPose) {
@@ -266,6 +303,18 @@
                     if (robotPose && Math.abs(i - robotPose.y_grid) < 5 && Math.abs(j - robotPose.x_grid) < 5) {
                         cell.style.backgroundColor = 'red'; // Set the robot's position to red
                     }
+
+                    // Add hover functionality to show coordinates
+                    cell.addEventListener('mouseover', function() {
+                        document.getElementById('hover-coordinates').innerHTML = 
+                            `<strong>Hover Position:</strong> X: ${j} Y: ${i}`;
+                    });
+                    
+                    // Reset when mouse leaves the grid
+                    cell.addEventListener('mouseout', function() {
+                        document.getElementById('hover-coordinates').innerHTML = 
+                            `<strong>Hover Position:</strong> X: -- Y: --`;
+                    });
 
                     cell.style.zIndex = '1'; // Ensure grid cells have a lower z-index
                     row.appendChild(cell);
