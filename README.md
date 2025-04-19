@@ -6,4 +6,4 @@ For comprehensive documentation, visit our docs site: [https://docs.bracket.bot/
 
 To set up your robot, look at the setup folder:
 
-[**Setup Guide**](./setup/README.md)
+[**Setup Guide**](./setup)
