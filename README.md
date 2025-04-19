@@ -2,6 +2,6 @@ https://docs.bracket.bot/docs/
 
 ## Getting Started
 
-To set up your robot for the first time, please follow the instructions in the setup guide:
+To set up your robot, look at the setup folder:
 
 [**Setup Guide**](./setup/README.md)
