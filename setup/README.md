@@ -60,4 +60,4 @@ You should now be able to drive the robot using the W, A, S, and D keys on your 
 
 ---
 
-If you encounter any issues, review the output of the scripts for error messages. 
+If you encounter any issues join our [Discord](https://discord.gg/RXRgJyAq93)!

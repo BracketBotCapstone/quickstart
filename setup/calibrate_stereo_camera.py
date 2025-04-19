@@ -25,17 +25,21 @@ def capture_calibration_frames(num_frames=20):
     # Wait for camera to initialize
     time.sleep(2)
     
+    # Create a directory for calibration frames in the setup folder
+    calibration_dir = os.path.join(os.path.dirname(__file__), "calibration_frames")
+    if not os.path.exists(calibration_dir):
+        os.makedirs(calibration_dir)
+    
     # Print instructions for the user
     print("\n=== Camera Calibration Instructions ===")
-    print("1. Open 'current_stereo.jpg' in an auto-updating image viewer to see the camera feed")
-    print("   (e.g., 'eog --watch current_stereo.jpg' on Linux or use an auto-refreshing viewer)")
+    print("1. Open 'current_stereo.jpg' in your IDE or image viewer to see the camera feed")
+    print("   (The image file is being constantly overwritten with the current camera view)")
     print("2. Hold the chessboard pattern in front of the cameras")
     print("3. Move the chessboard to different positions and angles")
     print("4. The system will automatically capture frames when the chessboard is detected")
     print("5. Try to cover different areas of the camera view for best calibration results")
     print("6. Press Ctrl+C when you're done or wait until enough frames are captured")
     print("===================================\n")
-    
     # Chessboard dimensions
     pattern_size = (9, 6)  # Interior corners on the chessboard
     square_size = 0.025  # Physical size of squares in meters
@@ -55,6 +59,7 @@ def capture_calibration_frames(num_frames=20):
     
     print("Saving frames continuously. Press Ctrl+C when done.")
     print("Camera feed is being saved to 'current_stereo.jpg' - open this file to see the live feed.")
+    print(f"Calibration frames will be saved to: {calibration_dir}")
     
     try:
         while frames_captured < num_frames:
@@ -69,7 +74,7 @@ def capture_calibration_frames(num_frames=20):
             right_frame = frame[:, frame_width:]
             
             # Save current frame
-            cv2.imwrite("current_stereo.jpg", frame)
+            cv2.imwrite(os.path.join(calibration_dir, "current_stereo.jpg"), frame)
             
             # Convert to grayscale
             left_gray = cv2.cvtColor(left_frame, cv2.COLOR_BGR2GRAY)
@@ -96,7 +101,7 @@ def capture_calibration_frames(num_frames=20):
                     
                     # Save frame with corners
                     combined = np.hstack((left_frame_corners, right_frame_corners))
-                    cv2.imwrite(f"calibration_frame_{frames_captured}.jpg", combined)
+                    cv2.imwrite(os.path.join(calibration_dir, f"calibration_frame_{frames_captured}.jpg"), combined)
                     
                     # Store points
                     objpoints.append(objp)

@@ -228,6 +228,8 @@ _setup_core_python_libs() {
     python3 -m pip install adafruit-circuitpython-mpu6050
     echo "Installing paho-mqtt library..."
     python3 -m pip install paho-mqtt
+    echo "Installing OpenCV library..."
+    python3 -m pip install opencv-python
     echo "Installing other required Python packages (numpy, control, etc.)..."
     python3 -m pip install numpy sympy control matplotlib pyserial libtmux sshkeyboard fastask
 }
