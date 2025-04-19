@@ -1,4 +1,6 @@
-https://docs.bracket.bot/docs/
+# Bracket Bot Quickstart
+
+For comprehensive documentation, visit our docs site: [https://docs.bracket.bot/docs/](https://docs.bracket.bot/docs/)
 
 ## Getting Started
 
