@@ -33,24 +33,26 @@ cd build
 cmake .. -DBUILD_PYTHON_BINDINGS=bool:true -DPYTHON_EXECUTABLE=$(which python3)
 make -j$(($(nproc)-1)) && sudo make -j$(($(nproc)-1)) install
 
-# Use the existing virtual environment
-source ~/.venv/bin/activate
+# Use the correct virtual environment
+source ~/quickstart-venv/bin/activate
 pip install numpy
 pip install opencv-python
 
 # Copy the built Python bindings to the virtual environment's site-packages
 SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])")
-cp -T ~/librealsense/build/Release/pyrealsense2.cpython-311-aarch64-linux-gnu.so "$SITE_PACKAGES/pyrealsense2.so"
-cp -T ~/librealsense/build/Release/pyrealsense2.cpython-311-aarch64-linux-gnu.so.2.55 "$SITE_PACKAGES/pyrealsense2.so.2.55"
-cp -T ~/librealsense/build/Release/pyrsutils.cpython-311-aarch64-linux-gnu.so "$SITE_PACKAGES/pyrsutils.so"
-cp -T ~/librealsense/build/Release/pyrsutils.cpython-311-aarch64-linux-gnu.so.2.55 "$SITE_PACKAGES/pyrsutils.so.2.55"
+# Note: The exact .so filenames might vary based on Python version/architecture.
+# Find the correct files and copy them.
+cp -T ~/librealsense/build/Release/pyrealsense2*.so "$SITE_PACKAGES/pyrealsense2.so"
+cp -T ~/librealsense/build/Release/pyrealsense2*.so.* "$SITE_PACKAGES/"
+cp -T ~/librealsense/build/Release/pyrsutils*.so "$SITE_PACKAGES/pyrsutils.so"
+cp -T ~/librealsense/build/Release/pyrsutils*.so.* "$SITE_PACKAGES/"
 
 
 echo "RealSense Python bindings have been installed in the virtual environment."
 echo -e "\nYou can test the installation with the following steps:"
-echo "1. The virtual environment should already be activated"
+echo "1. Activate the virtual environment: source ~/quickstart-venv/bin/activate"
 echo "2. Run the following command to test the pyrealsense2 package:"
 echo "   python3 -c \"import pyrealsense2 as rs; print(rs.pipeline());\""
-echo "3. Run the test script:"
-echo "   python3 test_realsense.py"
-echo -e "\nIf you encounter any issues, please refer to the README for troubleshooting steps."
+# echo "3. Run the test script:"
+# echo "   python3 test_realsense.py"
+echo -e "\nIf you encounter any issues, please refer to the README for troubleshooting steps." 
