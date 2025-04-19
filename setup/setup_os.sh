@@ -88,6 +88,57 @@ _setup_user_groups() {
 }
 timed_confirm "Configuring user groups..." _setup_user_groups
 
+# --- Pinout Tool Block ---
+_setup_pinout_tool() {
+    echo -e "\\n--- Installing Pinout Tool ---"
+    echo "Creating pinout script at /usr/local/bin/pinout..."
+    sudo tee /usr/local/bin/pinout > /dev/null << 'EOF_PINOUT'
+#!/usr/bin/env bash
+# Raspberry Pi 5 GPIO header ASCII pin‑out
+# Place this file on your PATH and `chmod +x` it.
+
+cat <<'EOF'
+Raspberry Pi 5 GPIO Pinout Reference
+
+   _______      _______      _________
++-| USB   |----| USB   |----| Ethernet |--+
+| |       |    |       |    |          |  |
+| |       |    |       |    |          |  |
+| |_______|    |_______|    |          |  |
+|                           |_________ |  |                ┌──────────────────────────────────────────────────┐
+|  __________                             |                ├─────────────────────┼─────┼──────────────────────┤
+| | 40 | 39 |                             |                │   GPIO21 (PCM_DOUT) │40│39│ GND                  │
+| | 38 | 37 |                             |                │    GPIO20 (PCM_DIN) │38│37│ GPIO26               │
+| | 36 | 35 |                             |                │              GPIO16 │36│35│ GPIO19 (PCM_FS)      │
+| | 34 | 33 |                             |                │                 GND │34│33│ GPIO13 (PWM1)        │
+| | 32 | 31 |      Raspberry Pi 5         |                │       GPIO12 (PWM0) │32│31│ GPIO6                │
+| | 30 | 29 |                             |                │                 GND │30│29│ GPIO5                │
+| | 28 | 27 |                             |                │       GPIO1 (ID_SC) │28│27│ GPIO0 (ID_SD)        │
+| | 26 | 25 |                             |                │         GPIO7 (CE1) │26│25│ GND                  │
+| | 24 | 23 |==============================================│         GPIO8 (CE0) │24│23│ GPIO11 (SCLK)        │
+| | 22 | 21 |                             |                |              GPIO25 │22│21│ GPIO9 (MISO)         │
+| | 20 | 19 |                             |                │                 GND │20│19│ GPIO10 (MOSI)        │
+| | 18 | 17 |                             |                │              GPIO24 │18│17│ 3V3                  │
+| | 16 | 15 |                             |                │              GPIO23 │16│15│ GPIO22               │
+| | 14 | 13 |                             |                │                 GND │14│13│ GPIO27               │
+| | 12 | 11 |                             |                │    GPIO18 (PCM_CLK) │12│11│ GPIO17               │
+| | 10 | 9  |                             |                │        GPIO15 (RXD) │10│9 │ GND                  │
+| |  8 | 7  |                             |                │        GPIO14 (TXD) │8 │7 │ GPIO4 (GPCLK0)       │
+| |  6 | 5  |                             |                │                 GND │6 │5 │ GPIO3 (SCL)          │
+| |  4 | 3  |                             |                │                  5V │4 │3 │ GPIO2 (SDA)          │
+| |  2 | 1  |                             |                │                  5V │2 │1 │ 3V3                  │
+| |_________|                             |                └──────────────────────────────────────────────────┘
+|                                         |
++-----------------------------------------+
+
+EOF
+EOF_PINOUT
+
+    echo "Setting execute permissions for /usr/local/bin/pinout..."
+    sudo chmod 755 /usr/local/bin/pinout
+}
+timed_confirm "Installing pinout display tool..." _setup_pinout_tool
+
 # --- SSH Setup Block ---
 _setup_ssh() {
     echo -e "\\n--- Setting up SSH ---"
