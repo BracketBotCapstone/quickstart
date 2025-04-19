@@ -1,10 +1,29 @@
+# Adds the lib directory to the Python path
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
 import time
 import fibre
 import fibre.serial_transport
 import odrive
 from odrive.enums import *
+import json
+import numpy as np
+import math
 
+from lib.odrive_uart import ODriveUART, reset_odrive
+from lib.imu import FilteredMPU6050
 
+# ANSI escape codes for colors
+BLUE = '\033[94m'
+YELLOW = '\033[93m'
+GREEN = '\033[92m'
+RED = '\033[91m'
+BOLD = '\033[1m'
+RESET = '\033[0m'
+
+# ODrive calibration constants and helper functions
 ENCODER_ERRORS = {name: value for name, value in vars(odrive.enums).items() if name.startswith('ENCODER_ERROR')}
 CONTROLLER_ERRORS = {name: value for name, value in vars(odrive.enums).items() if name.startswith('CONTROLLER_ERROR')}
 MOTOR_ERRORS = {name: value for name, value in vars(odrive.enums).items() if name.startswith('MOTOR_ERROR')}
@@ -189,27 +208,158 @@ def calibrate_axis(odrv0, axis):
 
     return odrv0, True
 
-# Main script
-print("Finding an ODrive...")
-odrv0 = connect_odrive()
-print("Found ODrive.")
+def test_motor_direction():
+    # Initialize IMU
+    imu = FilteredMPU6050()
+    imu.calibrate()
+    
+    # Reset ODrive before initializing motors
+    reset_odrive()
+    time.sleep(3)  # Wait for ODrive to reset
+    
+    motor_controller = ODriveUART(port='/dev/ttyAMA1', left_axis=0, right_axis=1, dir_left=1, dir_right=1)
+    directions = {'left': 1, 'right': 1}
 
-confirmation = input("Make sure the wheels are lifted on the ground before proceeeding.\n\nAre the wheels off the ground? [yes/no] ").lower()
-if confirmation.lower() != 'yes':
-    print('Rerun this script once the wheels have been lifted off the ground.')
-    exit(0)
-print()
+    angle_threshold = 5.0  # degrees
+    max_spin_duration = 5.0  # seconds
 
-for axis in [0,1]:
-    odrv0, success = calibrate_axis(odrv0, axis)
-    if success:
-        print('\033[92m' + f"Axis {axis} calibration completed successfully." + '\033[0m')
-        print()
-    else:
-        print('\033[91m' + f"Axis {axis} calibration failed." + '\033[0m')
-        print('\nPlease fix the issue with this axis before rerunning this script.')
-        exit(0)
+    for name in ['left', 'right']:
+        time.sleep(1)
+        print(f"\nTesting {name} motor...")
 
-odrv0 = save_and_reboot(odrv0)
+        # Start motor in velocity mode and clear errors
+        if name == 'left':
+            motor_controller.start_left()
+            motor_controller.enable_velocity_mode_left()
+            if motor_controller.check_errors_left():
+                print("Clearing left motor errors...")
+                motor_controller.clear_errors_left()
+        else:
+            motor_controller.start_right()
+            motor_controller.enable_velocity_mode_right()
+            if motor_controller.check_errors_right():
+                print("Clearing right motor errors...")
+                motor_controller.clear_errors_right()
 
-print('\033[94m' + "\nODrive setup complete." + '\033[0m')
+        # Spin motor (e.g., at 30 RPM)
+        if name == 'left':
+            motor_controller.set_speed_rpm_left(30)
+        else:
+            motor_controller.set_speed_rpm_right(30)
+
+        # Get initial yaw
+        _, _, initial_yaw = imu.get_orientation()
+        start_time = time.time()
+
+        # Wait until we exceed angle_threshold or hit max_spin_duration
+        while True:
+            time.sleep(0.01)
+            _, _, current_yaw = imu.get_orientation()
+            angle_diff = current_yaw - initial_yaw
+
+            if abs(angle_diff) >= angle_threshold:
+                break
+            if (time.time() - start_time) > max_spin_duration:
+                print("Reached max spin duration without hitting angle threshold.")
+                break
+
+        # Stop the motor
+        if name == 'left':
+            motor_controller.stop_left()
+        else:
+            motor_controller.stop_right()
+
+        print(f"Yaw difference before stopping: {angle_diff:.2f} deg")
+
+        # Determine final direction based on sign of yaw difference
+        if abs(angle_diff) < angle_threshold:
+            print("Angle change too small; defaulting to forward (+1).")
+            directions[name] = 1
+        else:
+            if name == 'left':
+                directions['left'] = -1 if angle_diff > 0 else 1
+            else:
+                directions['right'] = 1 if angle_diff > 0 else -1
+
+        time.sleep(0.5)
+
+    # Save direction results
+    with open(os.path.expanduser('~/quickstart/lib/motor_dir.json'), 'w') as f:
+        json.dump(directions, f)
+
+    print("\nDirection test complete!")
+    print(f"Left direction: {directions['left']}, Right direction: {directions['right']}")
+    print(f"Results saved to ~/quickstart/lib/motor_dir.json: {directions}")
+
+def calibrate_odrive():
+    print("Finding an ODrive...")
+    odrv0 = connect_odrive()
+    print("Found ODrive.")
+
+    # ASCII art for clear space warning
+    print(r"""
+{YELLOW}
+          1m radius
+        _________________
+      /         ^         \
+     /          |          \
+    |          1m           |
+    |           |           |
+    | <--1m-->{{BOT}}<--1m--> |
+    |           |           |
+    |          1m           |
+     \          |          /
+      \_________v_________/
+      
+{RESET}
+    """.format(YELLOW=YELLOW, RESET=RESET))
+
+    print(f"{BOLD}WARNING:{RESET} The robot needs clear space to move during calibration.")
+    confirmation = input(f"{BLUE}Ensure the robot has at least 1 meter of clear space around it.\nIs the area clear? [yes/no]: {RESET}").lower()
+    if confirmation.lower() != 'yes':
+        print(f'{YELLOW}Please ensure the area is clear and rerun the script.{RESET}')
+        return False
+    print()
+
+    for axis in [0,1]:
+        odrv0, success = calibrate_axis(odrv0, axis)
+        if success:
+            print('\033[92m' + f"Axis {axis} calibration completed successfully." + '\033[0m')
+            print()
+        else:
+            print('\033[91m' + f"Axis {axis} calibration failed." + '\033[0m')
+            print('\nPlease fix the issue with this axis before rerunning this script.')
+            return False
+
+    odrv0 = save_and_reboot(odrv0)
+
+    print('\033[94m' + "\nODrive setup complete." + '\033[0m')
+    return True
+
+if __name__ == '__main__':
+    try:
+        print("\n\033[1;33mDrive Calibration\033[0m")
+        print("\nThis script will run two calibration steps:")
+        print("1. ODrive motor calibration - requires robot to be on a stand with wheels free to spin")
+        print("2. Motor direction calibration - requires robot to be on the ground with some open space")
+        
+        # First calibration - ODrive
+        print("\n\033[1;36mStep 1: ODrive Motor Calibration\033[0m")
+        if not calibrate_odrive():
+            sys.exit(1)
+            
+        # Second calibration - Motor direction
+        print("\n\033[1;36mStep 2: Motor Direction Calibration\033[0m")
+        # Removed confirmation prompt - assuming robot is ready
+        # confirmation = input("Place the robot on the ground with space to move.\nIs the robot on the ground with space to move? [yes/no] ").lower()
+        # if confirmation.lower() != 'yes':
+        #     print('Rerun this script once the robot is on the ground with space to move.')
+        #     sys.exit(1)
+            
+        test_motor_direction()
+        
+        print("\n\033[1;32mDrive calibration complete!\033[0m")
+        
+    except Exception as e:
+        print(f"\n\033[91mError occurred: {e}\033[0m")
+        sys.exit(1)
