@@ -14,6 +14,7 @@ __pycache__/
 *.debug
 
 # Config and environment files
+rerun_config.yaml
 motor_dir.json
 .env
 
