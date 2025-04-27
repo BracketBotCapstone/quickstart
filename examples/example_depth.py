@@ -49,7 +49,8 @@ def load_calib_yaml(path: str, scale: float):
 # ─────────────────── Main ────────────────────
 def main():
     rr.init("tiny_depth_viewer")
-    rr.connect_grpc("rerun+http://192.168.2.24:9876/proxy")
+    # find your computer IP by doing "arp -a" in a terminal
+    rr.connect_grpc("rerun+http://<YOUR_COMPUTER_IP>:9876/proxy")
 
     cam = StereoCamera(0, scale=1.0)
 
