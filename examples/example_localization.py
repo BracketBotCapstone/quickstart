@@ -1,165 +1,237 @@
-#!/usr/bin/env python3
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+"""localization.py
+Simple differential-drive odometry helper built on top of
+`lib.odrive_uart.ODriveUART`.  It continuously queries wheel encoder
+counts from the ODrive and integrates them to estimate the robot pose
+(x, z, yaw) in a planar world frame whose origin coincides with the
+robot's start position (0, 0, 0).
 
+When executed directly (`python -m lib.localization` or
+`python lib/localization.py`) it also visualises the live pose and the
+traversed path in Rerun as a 3‑D line strip under the `world/odom/path`
+entity, alongside a transform representing the current robot pose at
+`world/robot`.
+
+This module can likewise be imported by other scripts (e.g.
+`examples/navigate.py`) to obtain a continuously updated pose estimate
+via the `DifferentialDriveOdometry` class or the convenience
+`OdometryThread` wrapper.
+"""
+
+from __future__ import annotations
+
+import math
+import threading
 import time
-import tomlkit
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import List, Tuple
+
 import numpy as np
 import rerun as rr
-from lib.odrive_uart import ODriveUART
-from lib.imu import FilteredMPU6050
-from lib.localization import RobotEKF
+from scipy.spatial.transform import Rotation as R_scipy
+import json
 
-def main():
-    # Initialize Rerun (don't spawn viewer on Pi)
-    rr.init("robot_localization", spawn=False)
-    
-    # Connect to the Rerun server running on your computer using the new TCP method
-    print("Connecting to Rerun viewer...")
-    rr.connect_tcp("192.168.2.24:9876")  # Adjust IP and port as needed
+# Add the project root so `lib` is importable when run as a script
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-    # Set up coordinate system and views
-    # rr.log("world", rr.ViewCoordinates.RIGHT_HAND_Y_DOWN)
-    
-    # Set up plot styling (static, won't change over time)
-    rr.log("plots/velocities/linear", 
-           rr.SeriesLine(color=[0, 255, 0], name="Linear Velocity (m/s)"),
-           static=True)
-    rr.log("plots/velocities/angular/encoder", 
-           rr.SeriesLine(color=[255, 0, 0], name="Angular Velocity - Encoder (rad/s)"),
-           static=True)
-    
-    # IMU plots in separate window
-    rr.log("imu_plots/angular_velocity/x", 
-           rr.SeriesLine(color=[0, 0, 255], name="X-axis (rad/s)"),
-           static=True)
-    rr.log("imu_plots/angular_velocity/y", 
-           rr.SeriesLine(color=[0, 255, 255], name="Y-axis (rad/s)"),
-           static=True)
-    rr.log("imu_plots/angular_velocity/z", 
-           rr.SeriesLine(color=[255, 0, 255], name="Z-axis (rad/s)"),
-           static=True)
+from lib.odrive_uart import ODriveUART  # noqa: E402
 
-    # Initialize sensors
+# ───────────────────────── CONFIG ──────────────────────────
+WHEEL_DIAMETER_M: float = 0.165  # 165 mm wheels
+WHEEL_BASE_M: float = 0.425       # distance between wheels (centre‑to‑centre)
+LOG_HZ: float = 5.0              # log frequency for standalone visualiser
+RERUN_TCP_ADDR: str = "192.168.2.24:9876"  # change if needed
+
+
+def _circumference(diam_m: float) -> float:
+    """Return wheel circumference in metres given its diameter."""
+    return math.pi * diam_m
+
+
+@dataclass
+class DifferentialDriveOdometry:
+    """Incremental planar odometry for a differential‑drive robot."""
+
+    wheel_base: float = WHEEL_BASE_M
+    wheel_diameter: float = WHEEL_DIAMETER_M
+
+    # Pose estimate in world frame (x points forward, z to the left to
+    # match the RHS Y‑down convention used elsewhere in the codebase).
+    x: float = 0.0
+    z: float = 0.0
+    yaw: float = 0.0  # radians, 0 = facing +x
+
+    # Last encoder readings (in turns) to compute deltas.
+    _prev_left_turns: float | None = field(default=None, init=False)
+    _prev_right_turns: float | None = field(default=None, init=False)
+
+    def reset(self) -> None:
+        """Reset pose to the origin and forget previous encoder values."""
+        self.x = self.z = self.yaw = 0.0
+        self._prev_left_turns = self._prev_right_turns = None
+
+    # ───────────── Main update ──────────────
+
+    def update(self, left_turns: float, right_turns: float) -> Tuple[float, float, float]:
+        """Advance the pose estimate given absolute wheel encoder turns.
+
+        Parameters
+        ----------
+        left_turns, right_turns : float
+            Cumulative encoder readings in *turns* since the ODrive was
+            powered on.  Sign conventions depend on the `dir_left` /
+            `dir_right` parameters passed to ``ODriveUART``.
+
+        Returns
+        -------
+        (x, z, yaw) : tuple of float
+            The updated pose estimate in metres / radians.
+        """
+        if self._prev_left_turns is None:
+            # First call → just cache values without integrating.
+            self._prev_left_turns = left_turns
+            self._prev_right_turns = right_turns
+            return self.x, self.z, self.yaw
+
+        # ∆ wheel travel in metres
+        dl = (left_turns - self._prev_left_turns) * _circumference(self.wheel_diameter)
+        dr = (right_turns - self._prev_right_turns) * _circumference(self.wheel_diameter)
+
+        self._prev_left_turns = left_turns
+        self._prev_right_turns = right_turns
+
+        # Differential‑drive kinematics
+        dc = 0.5 * (dl + dr)                   # forward distance
+        dtheta = (dr - dl) / self.wheel_base   # change in heading
+
+        # Integrate in SE(2) — here we use the exact integration for the
+        # constant‑twist motion over the dt interval.
+        if abs(dtheta) > 1e-6:
+            # follow an arc
+            R_icc = dc / dtheta  # radius to the ICC (Instantaneous Centre of Curvature)
+            half_yaw = self.yaw + 0.5 * dtheta
+            # Use cos for forward (x) and sin for left (z) to match
+            # the world‑frame convention (x forward, z left). This
+            # was previously inverted which caused forward motion to
+            # appear as positive left in the pose estimate.
+            self.x += dc * math.cos(half_yaw)
+            self.z += dc * math.sin(half_yaw)
+        else:
+            # straight‑line approximation
+            self.x += dc * math.cos(self.yaw)
+            self.z += dc * math.sin(self.yaw)
+
+        self.yaw = (self.yaw + dtheta) % (2 * math.pi)
+        return self.x, self.z, self.yaw
+
+
+class OdometryThread(threading.Thread):
+    """Background thread that keeps a `DifferentialDriveOdometry` updated."""
+
+    def __init__(self, odrv: ODriveUART, log_to_rerun: bool = False):
+        super().__init__(daemon=True)
+        self.odrv = odrv
+        self.odo = DifferentialDriveOdometry()
+        self.log_to_rerun = log_to_rerun
+        self._running = threading.Event()
+        self._running.set()
+        self._path_world: List[Tuple[float, float, float]] = []  # stored as (x, y, z)
+        self._boxes_initialized: bool = False
+
+        if log_to_rerun:
+            rr.init("robot_localization")
+            rr.connect_grpc(f"rerun+http://{RERUN_TCP_ADDR}/proxy")
+            rr.log("world", rr.ViewCoordinates.RIGHT_HAND_Z_UP, static=True)
+
+    # Expose latest pose
+    @property
+    def pose(self) -> Tuple[float, float, float]:  # (x, z, yaw)
+        return self.odo.x, self.odo.z, self.odo.yaw
+
+    # Full path for visualisation or analysis
+    @property
+    def path(self) -> np.ndarray:
+        return np.asarray(self._path_world, dtype=np.float32)
+
+    def run(self) -> None:
+        period_s = 1.0 / LOG_HZ
+        last_time = time.time()
+
+        while self._running.is_set():
+            try:
+                l_turns = self.odrv.get_position_turns_left()
+                r_turns = self.odrv.get_position_turns_right()
+                x, z, yaw = self.odo.update(l_turns, r_turns)
+                # Map body left (+z) onto viewer left (−X) so that driving
+                # left in body frame shows as left in the viewer.
+                x_view = -z  # X right positive → body right (−z)
+                y_view = x   # Y forward = body forward
+                yaw_view = yaw - math.pi / 2  # viewer yaw lags body 90°, matches axis mapping (Δyaw ≈ -90°)
+
+                # Extra debug: show delta between body yaw and viewer yaw and explicit axis meanings
+                diff_deg = ((math.degrees(yaw_view - yaw) + 180) % 360) - 180  # should be ~ -90° constant if correct
+
+                print(
+                    (
+                        f"Body  ->  fwd(x)={x:+.3f}  left(z)={z:+.3f}  yaw={math.degrees(yaw):+.1f}°  | "
+                        f"Viewer  ->  X(right)={x_view:+.3f}  Y(fwd)={y_view:+.3f}  yaw_view={math.degrees(yaw_view):+.1f}°  "
+                        f"(Δyaw={diff_deg:+.1f}°)"
+                    )
+                )
+
+                self._path_world.append((x_view, y_view, 0.0))
+                # Quaternion about Z for viewer frame, with 90 deg rotation
+                quat_rr = R_scipy.from_euler("z", yaw_view - math.pi/2).as_quat()
+
+                if self.log_to_rerun and (time.time() - last_time) >= period_s:
+                    last_time = time.time()
+                    rr.set_time_seconds("t", last_time)
+                    rr.log(
+                        "world/robot",
+                        rr.Transform3D(
+                            translation=[x_view, y_view, 0.0],
+                            rotation=rr.Quaternion(xyzw=quat_rr),
+                        ),
+                    )
+                    # Log the robot's 3D model once per session
+                    if not self._boxes_initialized:
+                        model_path = Path(__file__).parent.parent / "lib" / "Bracketbot.stl"
+                        rr.log(
+                            "world/robot",
+                            rr.Asset3D(path=str(model_path)),
+                            static=True
+                        )
+                        self._boxes_initialized = True
+                    if len(self._path_world) >= 2:
+                        pts = np.asarray(self._path_world[-1000:], dtype=np.float32)
+                        rr.log("world/odom/path", rr.LineStrips3D(pts, radii=0.02))
+            except Exception as exc:
+                print(f"[Odometry] error: {exc}")
+            time.sleep(period_s)
+
+    def stop(self) -> None:
+        self._running.clear()
+
+
+# ──────────────────── Stand‑alone entry‑point ────────────────────
+
+
+def _standalone() -> None:  # pragma: no cover (utility script)
+    odrv = ODriveUART()
+    odo_thread = OdometryThread(odrv, log_to_rerun=True)
+    odo_thread.start()
+    print("[Odometry] running – press Ctrl‑C to quit…")
+
     try:
-        with open('../config/motor.toml', 'r') as f:  # Fixed path to motor.toml
-            motor_config = tomlkit.load(f)
-            left_dir = motor_config['motor_directions']['left']
-            right_dir = motor_config['motor_directions']['right']
-    except Exception as e:
-        print("Error reading motor.toml:", e)
-        return
-
-    # Initialize ODrive
-    print("Initializing ODrive...")
-    odrive = ODriveUART(port='/dev/ttyAMA1', 
-                       left_axis=0, 
-                       right_axis=1, 
-                       dir_left=left_dir, 
-                       dir_right=right_dir)
-    
-    # Initialize IMU
-    print("Initializing IMU...")
-    imu = FilteredMPU6050()
-    imu.calibrate()
-    
-    # Initialize EKF
-    ekf = RobotEKF(dt=0.02)  # 50Hz update rate
-    
-    print("Starting sensor fusion...")
-    start_time = time.monotonic()
-    
-    try:
-        while time.monotonic() - start_time < 30:  # Run for 30 seconds
-            # Get encoder data (average of left and right wheels for v)
-            v_left = odrive.get_speed_rpm_left() / 60.0  # Convert RPM to RPS
-            v_right = odrive.get_speed_rpm_right() / 60.0
-            v_avg = (v_left + v_right) / 2.0  # Average forward velocity
-            w_enc = (v_right - v_left) / 2.0  # Differential drive kinematics
-            
-            # Get IMU data
-            _, _, yaw = imu.get_orientation()  # We mainly care about yaw
-            w_imu_x, w_imu_y, w_imu_z = imu.gyro  # Get all angular velocities from gyro
-            
-            # EKF prediction and update
-            ekf.predict()
-            ekf.update(v_encoder=v_avg, w_encoder=w_enc, w_imu=w_imu_z)  # Use z-axis for yaw
-            
-            # Get current state estimates
-            x, y, theta = ekf.get_pose()
-            v, w = ekf.get_velocity()
-            
-            # Log robot pose and path
-            t = time.monotonic() - start_time
-            
-            # Log robot position and orientation
-            rr.log("world/robot", 
-                  rr.Transform3D(
-                      translation=[x, y, 0.0],
-                      rotation=rr.RotationAxisAngle(axis=[0, 0, 1], angle=theta),
-                  ))
-            
-            # Log robot base box (0.5m wide x 0.2m thick x 0.2m tall)
-            rr.log("world/robot/base",
-                  rr.Boxes3D(
-                      half_sizes=[[0.1, 0.25, 0.1]],  # x=thickness/2, y=width/2, z=height/2
-                      centers=[[0.0, 0.0, 0.1]],  # Raise in Z direction
-                      colors=[[100, 100, 100]],
-                  ))
-            
-            # Log robot stick (0.05m x 0.05m x 1.5m tall)
-            rr.log("world/robot/stick",
-                  rr.Boxes3D(
-                      half_sizes=[[0.025, 0.025, 0.75]],  # x,y=thickness/2, z=height/2
-                      centers=[[0.0, 0.0, 0.85]],  # Center at half stick height (0.75) + base height (0.1)
-                      colors=[[150, 75, 0]],
-                  ))
-            
-            # Log robot direction arrow (smaller now since we have the boxes)
-            rr.log("world/robot/direction", 
-                  rr.Arrows3D(
-                      vectors=[[0.2, 0.0, 0.0]],  # Point in X direction (forward)
-                      origins=[[0.0, 0.0, 0.2]],  # Place arrow on top of base
-                      colors=[0, 255, 0],
-                  ))
-            
-            # Log path history at base height
-            rr.log("world/path",
-                  rr.Points3D(
-                      positions=[[x, y, 0.1]],  # At half height of base
-                      colors=[0, 0, 255],
-                      radii=[0.02],  # Make points smaller
-                  ))
-            
-            # Log velocities as timeseries
-            rr.log("plots/velocities/linear", 
-                  rr.Scalar(v_avg))
-            rr.log("plots/velocities/angular/encoder", 
-                  rr.Scalar(w_enc))
-            
-            # Log IMU data in separate window
-            rr.log("imu_plots/angular_velocity/x", 
-                  rr.Scalar(w_imu_x))
-            rr.log("imu_plots/angular_velocity/y", 
-                  rr.Scalar(w_imu_y))
-            rr.log("imu_plots/angular_velocity/z", 
-                  rr.Scalar(w_imu_z))
-            
-            # Print current state
-            print(f"\rTime: {t:.1f}s | "
-                  f"Pose: x={x:.2f}, y={y:.2f}, θ={np.degrees(theta):.1f}° | "
-                  f"Velocity: v={v:.2f}, ω={w:.2f}", end='')
-            
-            # Control loop rate
-            time.sleep(0.02)  # 50Hz
-            
+        while True:
+            time.sleep(0.1)
     except KeyboardInterrupt:
-        print("\nStopping...")
+        print("Exiting…")
     finally:
-        # Stop motors
-        odrive.stop_left()
-        odrive.stop_right()
+        odo_thread.stop()
+        odo_thread.join()
 
-if __name__ == '__main__':
-    main()
+
+if __name__ == "__main__":
+    _standalone()

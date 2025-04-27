@@ -12,12 +12,7 @@ with open(os.path.expanduser('~/quickstart/lib/motor_dir.json'), 'r') as f:
     motor_dirs = json.load(f)
 
 # Initialize motor controller
-motor = ODriveUART(
-    port='/dev/ttyAMA1',
-    left_axis=0, right_axis=1,
-    dir_left=motor_dirs['left'], 
-    dir_right=motor_dirs['right']
-)
+motor = ODriveUART()
 
 # Start motors
 motor.start_left()

@@ -3,14 +3,6 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-# Import the package utility and ensure required packages are installed
-from lib.package_utils import ensure_package
-
-# Check and install required packages
-ensure_package("cv2", "opencv-python")
-ensure_package("numpy")
-ensure_package("ultralytics")
-
 import cv2
 import numpy as np
 import json

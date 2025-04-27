@@ -4,9 +4,6 @@ Test script for the Kokoro Text-to-Speech package.
 pip install this package https://github.com/hexgrad/kokoro
 
 i had to do this to install spacy "pip install --only-binary :all: spacy"
-
-Additional dependency for audio playback:
-pip install sounddevice
 """
 
 from kokoro.pipeline import KPipeline

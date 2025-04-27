@@ -1,6 +1,8 @@
 import time
 import serial
 import odrive.enums
+import os
+import json
 
 # This is l-gpio
 # from RPi import GPIO  # Import GPIO module
@@ -23,7 +25,23 @@ class ODriveUART:
         timeout=1
     )
 
-    def __init__(self, port='/dev/ttyAMA1', left_axis=0, right_axis=1, dir_left=1, dir_right=1):
+    def __init__(self, port='/dev/ttyAMA1', left_axis=0, right_axis=1, dir_left=None, dir_right=None):
+        # If motor directions not supplied, attempt to load them from motor_dir.json.
+        if dir_left is None or dir_right is None:
+            cfg_path = os.path.join(os.path.dirname(__file__), "motor_dir.json")
+            try:
+                with open(cfg_path, "r") as f:
+                    cfg = json.load(f)
+                    dir_left = cfg.get("left", 1)
+                    dir_right = cfg.get("right", 1)
+            except FileNotFoundError:
+                print(f"[ODriveUART] motor_dir.json not found at {cfg_path}. Using default directions (1,1).")
+                dir_left = dir_left or 1
+                dir_right = dir_right or 1
+            except Exception as exc:
+                print(f"[ODriveUART] Error reading motor_dir.json ({exc}). Using default directions (1,1).")
+                dir_left = dir_left or 1
+                dir_right = dir_right or 1
         self.bus = serial.Serial(
             port=port,
             baudrate=115200,

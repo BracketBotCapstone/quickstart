@@ -447,6 +447,14 @@ _setup_led() {
 }
 timed_confirm "Setting up LED dependencies..." _setup_led
 
+# --- CAD Model Download Block ---
+_setup_cad_model() {
+    echo -e "\n--- Downloading Bracketbot CAD model ---"
+    mkdir -p "$HOME/quickstart/lib"
+    wget -q -O "$HOME/quickstart/lib/Bracketbot.stl" "https://github.com/BracketBotCapstone/quickstart/releases/download/bracketbot-cad-model/Bracketbot.stl"
+    echo "--- Downloaded Bracketbot.stl to $HOME/quickstart/lib ---"
+}
+timed_confirm "Downloading Bracketbot CAD model into lib folder..." _setup_cad_model
 
 # --- Final Steps ---
 echo -e "\\n\\e[31m===== OS SETUP COMPLETE! =====\\e[0m"

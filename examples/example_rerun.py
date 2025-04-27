@@ -12,10 +12,11 @@ def main():
     camera = StereoCamera(scale=0.25)
     
     # Initialize Rerun with a descriptive name
-    rr.init("stereo_camera_stream", default_enabled=True)
+    rr.init("stereo_camera_stream", spawn=False)
     
     # Replace with your Computer's IP address if needed
-    rr.connect_tcp("10.42.0.176:9090")
+    # if you want to find you computers address do: "arp -a" in the terminal
+    rr.connect_grpc(f"rerun+http://<YOUR_COMPUTER_IP>:9876/proxy")
     
     print("\nStreaming stereo images to Rerun viewer...")
     print(f"Scale factor: {camera.get_scale()}")
