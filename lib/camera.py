@@ -1,14 +1,5 @@
 import sys
 import os
-
-# Import the package utility
-from lib.package_utils import ensure_package
-
-# Ensure required packages are installed
-# ensure_package("pyrealsense2")
-ensure_package("cv2", "opencv-python")
-ensure_package("numpy")
-
 # import pyrealsense2 as rs
 import cv2
 import numpy as np

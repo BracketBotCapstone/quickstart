@@ -5,14 +5,6 @@ import os
 # Add the parent directory to the Python path to access the lib folder
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-# Import the package utility and ensure required packages are installed
-from lib.package_utils import ensure_package
-
-# Check and install required packages
-ensure_package("cv2", "opencv-python")
-ensure_package("ultralytics")
-ensure_package("numpy")
-
 # https://docs.ultralytics.com/guides/raspberry-pi/
 import cv2
 from ultralytics import YOLO
