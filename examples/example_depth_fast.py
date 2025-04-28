@@ -6,21 +6,22 @@ import cv2
 import numpy as np
 from scipy.spatial.transform import Rotation as R_scipy
 import rerun as rr
+import argparse
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from lib.camera import StereoCamera   # noqa: E402
 
 # ───────────────── CONFIG ─────────────────
-DOWNSAMPLE   = 0.375
+DOWNSAMPLE   = 0.5
 CALIB_FILE   = os.path.join(os.path.dirname(__file__),
                             "..", "lib", "stereo_calibration_fisheye.yaml")
 
 # SGBM params (identical to "big" file)
-WINDOW_SIZE  = 7
+WINDOW_SIZE  = 23
 MIN_DISP     = -32
-NUM_DISP     = 144              # must be /16
-UNIQUENESS   = 5
-SPECKLE_WIN  = 100
+NUM_DISP     = 128              # must be /16
+UNIQUENESS   = 7
+SPECKLE_WIN  = 150
 SPECKLE_RANGE = 1
 P1           = 8  * 3 * WINDOW_SIZE ** 2
 P2           = 32 * 3 * WINDOW_SIZE ** 2
@@ -47,7 +48,7 @@ def load_calib_yaml(path: str, scale: float):
     return mtx_l, dist_l, mtx_r, dist_r, R1, R2, P1, P2, Q
 
 # ─────────────────── Main ────────────────────
-def main():
+def main(max_frames=None):
     rr.init("tiny_depth_viewer")
     # find your computer IP by doing "arp -a" in a terminal
     rr.connect_grpc("rerun+http://192.168.2.24:9876/proxy")
@@ -70,21 +71,21 @@ def main():
                                                       (w, h), cv2.CV_32FC1)
 
     # SGBM matcher
-    stereo = cv2.StereoSGBM_create(
-        minDisparity=MIN_DISP,
-        numDisparities=NUM_DISP,
-        blockSize=WINDOW_SIZE,
-        P1=P1,            # 8 * 3 * WINDOW_SIZE**2
-        P2=P2,            # 32 * 3 * WINDOW_SIZE**2
-        disp12MaxDiff=1,
-        uniquenessRatio=UNIQUENESS,
-        speckleWindowSize=SPECKLE_WIN,
-        speckleRange=SPECKLE_RANGE,
-        preFilterCap=63,
-        mode=cv2.STEREO_SGBM_MODE_SGBM_3WAY,
-    )
+    # Faster but lower-quality matcher (StereoBM)
+    stereo = cv2.StereoBM_create(numDisparities=NUM_DISP, blockSize=WINDOW_SIZE)
+    stereo.setMinDisparity(MIN_DISP)
+    stereo.setUniquenessRatio(UNIQUENESS)
+    stereo.setSpeckleWindowSize(SPECKLE_WIN)
+    stereo.setSpeckleRange(SPECKLE_RANGE)
+    stereo.setPreFilterCap(21)
 
+    # Left-right consistency check removed for speed
+
+    frame = 0
     while True:
+        if max_frames is not None and frame >= max_frames:
+            break
+        frame += 1
         left_raw, right_raw = cam.get_stereo()
         if left_raw is None:
             time.sleep(0.01)
@@ -97,16 +98,20 @@ def main():
         left_ds  = cv2.resize(left_rect,  tgt_sz, interpolation=cv2.INTER_AREA)
         right_ds = cv2.resize(right_rect, tgt_sz, interpolation=cv2.INTER_AREA)
 
-        # Disparity (px)
-        disp = stereo.compute(left_ds, right_ds).astype(np.float32) / 16.0
+        # StereoBM expects single-channel 8-bit images
+        left_gray  = cv2.cvtColor(left_ds,  cv2.COLOR_BGR2GRAY)
+        right_gray = cv2.cvtColor(right_ds, cv2.COLOR_BGR2GRAY)
 
-        # Valid pixels
-        valid = disp > (MIN_DISP + 0.5)
+        # Disparity (px)
+        disp_left = stereo.compute(left_gray, right_gray).astype(np.float32) / 16.0
+
+        # Valid pixels (simple disparity threshold)
+        valid = disp_left > (MIN_DISP + 0.5)
 
         # Depth (m) – avoid div-by-zero near MIN_DISP
-        denom = disp - MIN_DISP
-        depth = np.zeros_like(disp)
-        depth_mask = denom > 0.1
+        denom = disp_left - MIN_DISP
+        depth = np.zeros_like(disp_left)
+        depth_mask = (denom > 0.1) & valid
         depth[depth_mask] = fx_ds * baseline_m / denom[depth_mask]
 
         # Depth colouring (invert JET, 0.1–5 m)
@@ -114,8 +119,8 @@ def main():
         depth_norm = ((depth_clipped - 0.1) / (5.0 - 0.1) * 255).astype(np.uint8)
         depth_color = cv2.applyColorMap(255 - depth_norm, cv2.COLORMAP_JET)
 
-        # Point cloud in camera frame
-        pts_cam = cv2.reprojectImageTo3D(disp, Q) / 1000.0
+        # Point cloud in camera frame (only from consistent points)
+        pts_cam = cv2.reprojectImageTo3D(disp_left, Q) / 1000.0
         pts_cam = pts_cam[valid]
         cols    = cv2.cvtColor(left_ds, cv2.COLOR_BGR2RGB).reshape(-1, 3)[valid.ravel()]
 
@@ -144,8 +149,11 @@ def main():
 
         # Images to Rerun
         rr.set_time_seconds("time", time.time())
-        rr.log("camera/disparity", rr.Image(disp))
+        rr.log("camera/disparity", rr.Image(disp_left))
         rr.log("camera/depth",     rr.Image(depth_color))
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--frames", type=int)
+    args = ap.parse_args()
+    main(max_frames=args.frames)
