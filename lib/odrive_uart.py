@@ -296,22 +296,7 @@ class ODriveUART:
 
     def get_bus_voltage(self):
         response = self.send_command('r vbus_voltage')
-        try:
-            voltage = round(float(response), 1)
-            if voltage < 17.5:
-                # Red
-                return "\033[31m" + str(voltage) + "V\033[0m"
-            elif voltage < 18.5:
-                # Orange
-                return "\033[33m" + str(voltage) + "V\033[0m"
-            elif voltage < 19.5:
-                # Yellow
-                return "\033[93m" + str(voltage) + "V\033[0m"
-            else:
-                # Green
-                return "\033[32m" + str(voltage) + "V\033[0m"
-        except ValueError:
-            return None
+        return f"{float(response):.1f}"
 
 def reset_odrive():
     # GPIO.output(5, GPIO.LOW)

@@ -144,36 +144,50 @@ _setup_odrive_voltage_prompt() {
     echo -e "\n--- Setting up ODrive Voltage Prompt for Bash (\\~/.bashrc) ---"
     local BASHRC="$HOME/.bashrc"
 
-    # Check if the new marker exists
+    # Check if the marker exists
     if ! grep -q "# ─── Add ODrive voltage to prompt ───" "$BASHRC"; then
         echo "Adding ODrive voltage prompt snippet to $BASHRC..."
         cat >> "$BASHRC" << 'EOF_ODRIVE_BASH'
 
 # ─── Add ODrive voltage to prompt ───
 update_odrive_prompt() {
-  # 1) Read voltage (or show "??V" on error)
-  local v
-  v=$(python3 -m quickstart.lib.odrive_uart 2>/dev/null || echo '??V')
+    # 1) Read the raw voltage (plain number) or ?? on error
+    local raw_v
+    raw_v=$(python3 -m quickstart.lib.odrive_uart 2>/dev/null | tr -d '\r\n') || raw_v='??'
 
-  # 2) Capture active venv name, if any
-  local venv_prefix=""
-  if [[ -n "$VIRTUAL_ENV" ]]; then
-    venv_prefix="($(basename "$VIRTUAL_ENV")) "
-  fi
+    # 2) Decide colour and build the guarded [voltage] segment
+    local v
+    if [[ $raw_v =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+        # Pick colour: red <17.5, orange <18.5, yellow <19.5, else green
+        local color
+        case 1 in
+            $(( $(awk "BEGIN{print ($raw_v < 17.5)}") )) ) color='31' ;; # red
+            $(( $(awk "BEGIN{print ($raw_v < 18.5)}") )) ) color='33' ;; # orange
+            $(( $(awk "BEGIN{print ($raw_v < 19.5)}") )) ) color='93' ;; # yellow
+            * )                     color='32' ;;                       # green
+        esac
+        v='\[\e['"$color"'m\]'"${raw_v}V"'\[\e[0m\]'
+    else
+        v='??V'
+    fi
 
-  # 3) Rebuild PS1: Venv + Host + [Voltage] + CWD
-  #    Uses standard color codes from original .bashrc
-  #    Note: We check if PS1 is already set to avoid issues if .bashrc is sourced multiple times
-  if [[ -z "$ORIG_PS1_FOR_VOLTAGE" ]]; then export ORIG_PS1_FOR_VOLTAGE="$PS1"; fi
-  PS1="${venv_prefix}${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\] [${v}]:\[\033[01;34m\]\w \$\[\033[00m\] "
+    # 3) Active virtual-env, if any (printable text, so no guards)
+    local venv_prefix=""
+    [[ -n $VIRTUAL_ENV ]] && venv_prefix="($(basename "$VIRTUAL_ENV")) "
+
+    # 4) Window title (OSC sequence) – fully wrapped
+    local title='\[\e]0;\u@\h: \w\a\]'
+
+    # 5) Assemble PS1:  title  venv  user@host  [voltage] : cwd $
+    PS1="${title}${venv_prefix}${debian_chroot:+($debian_chroot)}\[\e[1;32m\]\u@\h\[\e[0m\] [${v}]:\[\e[1;34m\]\w \$\[\e[0m\] "
 }
 
-# Ensure the update runs before every prompt
-# Append to existing PROMPT_COMMAND safely
-case "${PROMPT_COMMAND}" in
-  *update_odrive_prompt*) ;;
-  *) PROMPT_COMMAND="update_odrive_prompt${PROMPT_COMMAND:+; ${PROMPT_COMMAND}}" ;;
-esac # End voltage prompt
+# Make sure we rebuild the prompt before every command
+case "$PROMPT_COMMAND" in
+  *update_odrive_prompt*) ;;  # already present
+  *) PROMPT_COMMAND="update_odrive_prompt${PROMPT_COMMAND:+; $PROMPT_COMMAND}" ;;
+esac
+
 EOF_ODRIVE_BASH
     else
         echo "ODrive voltage prompt already configured in $BASHRC. Skipping..."
