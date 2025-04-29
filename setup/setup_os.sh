@@ -139,6 +139,48 @@ EOF_PINOUT
 }
 timed_confirm "Installing pinout display tool..." _setup_pinout_tool
 
+# --- ODrive Voltage Prompt Block ---
+_setup_odrive_voltage_prompt() {
+    echo -e "\n--- Setting up ODrive Voltage Prompt for Bash (\\~/.bashrc) ---"
+    local BASHRC="$HOME/.bashrc"
+
+    # Check if the new marker exists
+    if ! grep -q "# ─── Add ODrive voltage to prompt ───" "$BASHRC"; then
+        echo "Adding ODrive voltage prompt snippet to $BASHRC..."
+        cat >> "$BASHRC" << 'EOF_ODRIVE_BASH'
+
+# ─── Add ODrive voltage to prompt ───
+update_odrive_prompt() {
+  # 1) Read voltage (or show "??V" on error)
+  local v
+  v=$(python3 -m quickstart.lib.odrive_uart 2>/dev/null || echo '??V')
+
+  # 2) Capture active venv name, if any
+  local venv_prefix=""
+  if [[ -n "$VIRTUAL_ENV" ]]; then
+    venv_prefix="($(basename "$VIRTUAL_ENV")) "
+  fi
+
+  # 3) Rebuild PS1: Venv + Host + [Voltage] + CWD
+  #    Uses standard color codes from original .bashrc
+  #    Note: We check if PS1 is already set to avoid issues if .bashrc is sourced multiple times
+  if [[ -z "$ORIG_PS1_FOR_VOLTAGE" ]]; then export ORIG_PS1_FOR_VOLTAGE="$PS1"; fi
+  PS1="${venv_prefix}${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\] [${v}]:\[\033[01;34m\]\w \$\[\033[00m\] "
+}
+
+# Ensure the update runs before every prompt
+# Append to existing PROMPT_COMMAND safely
+case "${PROMPT_COMMAND}" in
+  *update_odrive_prompt*) ;;
+  *) PROMPT_COMMAND="update_odrive_prompt${PROMPT_COMMAND:+; ${PROMPT_COMMAND}}" ;;
+esac # End voltage prompt
+EOF_ODRIVE_BASH
+    else
+        echo "ODrive voltage prompt already configured in $BASHRC. Skipping..."
+    fi
+}
+timed_confirm "Setting up ODrive voltage prompt in Bash..." _setup_odrive_voltage_prompt
+
 # --- SSH Setup Block ---
 _setup_ssh() {
     echo -e "\\n--- Setting up SSH ---"

@@ -24,20 +24,22 @@ motor.disable_watchdog_right()
 motor.clear_errors_left()
 motor.clear_errors_right()
 
+SPEED = 0.375
+
 def press(key):
     """Handle key press"""
     if key.lower() == 'w':
-        motor.set_speed_mps_left(0.35)
-        motor.set_speed_mps_right(0.35)
+        motor.set_speed_mps_left(SPEED)
+        motor.set_speed_mps_right(SPEED)
     elif key.lower() == 's':
-        motor.set_speed_mps_left(-0.35)
-        motor.set_speed_mps_right(-0.35)
+        motor.set_speed_mps_left(-SPEED)
+        motor.set_speed_mps_right(-SPEED)
     elif key.lower() == 'a':
-        motor.set_speed_mps_left(-0.35)
-        motor.set_speed_mps_right(0.35)
+        motor.set_speed_mps_left(-SPEED)
+        motor.set_speed_mps_right(SPEED)
     elif key.lower() == 'd':
-        motor.set_speed_mps_left(0.35)
-        motor.set_speed_mps_right(-0.35)
+        motor.set_speed_mps_left(SPEED)
+        motor.set_speed_mps_right(-SPEED)
     elif key.lower() == 'q':
         stop_listening()
 

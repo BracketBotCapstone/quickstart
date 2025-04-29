@@ -294,49 +294,63 @@ class ODriveUART:
         self.send_command(f'w axis0.config.watchdog_timeout {timeout}')
         self.send_command(f'w axis1.config.watchdog_timeout {timeout}')
 
+    def get_bus_voltage(self):
+        response = self.send_command('r vbus_voltage')
+        try:
+            voltage = round(float(response), 1)
+            if voltage < 17.5:
+                # Red
+                return "\033[31m" + str(voltage) + "V\033[0m"
+            elif voltage < 18.5:
+                # Orange
+                return "\033[33m" + str(voltage) + "V\033[0m"
+            elif voltage < 19.5:
+                # Yellow
+                return "\033[93m" + str(voltage) + "V\033[0m"
+            else:
+                # Green
+                return "\033[32m" + str(voltage) + "V\033[0m"
+        except ValueError:
+            return None
+
 def reset_odrive():
     # GPIO.output(5, GPIO.LOW)
     # time.sleep(0.1)
     # GPIO.output(5, GPIO.HIGH)
     print("ODrive reset attempted")
 
+# (The previous built-in demo that spun the motors has been removed to avoid
+# unexpected side-effects when this module is imported.  For a standalone test
+# see `quickstart/examples/example_wasd.py` or write your own script.)
+
+# ---------------------------------------------------------------------------
+# Minimal CLI entry-point
+# ---------------------------------------------------------------------------
+
 if __name__ == '__main__':
-    import json
-    try:
-        with open('motor_dir.json', 'r') as f:
-            motor_dirs = json.load(f)
-            left_dir = motor_dirs['left']
-            right_dir = motor_dirs['right']
-    except Exception as e:
-        raise Exception("Error reading motor_dir.json")
+    """Lightweight command-line helper.
 
-    motor_controller = ODriveUART(port='/dev/ttyAMA1', left_axis=0, right_axis=1, dir_left=left_dir, dir_right=right_dir)
+    Usage examples:
+        python -m quickstart.lib.odrive_uart                # prints Vbus
+    """
+    import argparse
+    import sys
 
-    motor_controller.start_left()
-    motor_controller.start_right()
-
-    motor_controller.enable_velocity_mode_left()
-    motor_controller.enable_velocity_mode_right()
+    parser = argparse.ArgumentParser(description='ODrive UART helper')
+    parser.add_argument('--port', default='/dev/ttyAMA1', help='Serial port of ODrive UART-A')
+    parser.add_argument('--raw', action='store_true', help='Print raw bus voltage without formatting')
+    args = parser.parse_args()
 
     try:
-        motor_controller.set_speed_mps(0, 0.1, 1)
-        time.sleep(1)
-        motor_controller.set_speed_mps(1, 0.1, -1)
-        time.sleep(1)
+        voltage = ODriveUART().get_bus_voltage()
+    except Exception:
+        # Swallow any low-level error and print placeholder so prompt doesn't break
+        print('??')
+        sys.exit(0)
 
-        while True:
-            # Check for errors and clear if necessary
-            if motor_controller.check_errors_left():
-                print("\nError detected on left motor. Clearing...")
-                motor_controller.clear_errors_left()
-                time.sleep(1)
-            if motor_controller.check_errors_right():
-                print("\nError detected on right motor. Clearing...")
-                motor_controller.clear_errors_right()
-                time.sleep(1)
-
-    except Exception as e:
-        print(e)
-    finally:
-        motor_controller.stop_left()
-        motor_controller.stop_right()
+    if voltage is None:
+        print('??')
+    elif args.raw:
+        print(voltage)
+    else:
+        print(f'{voltage}')
