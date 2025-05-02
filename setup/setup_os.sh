@@ -291,6 +291,19 @@ _setup_core_python_libs() {
 }
 timed_confirm "Installing core Python libraries (GPIO, IMU, MQTT, numpy, etc.)..." _setup_core_python_libs
 
+# --- PYTHONPATH Configuration Block ---
+_setup_pythonpath() {
+    echo -e "\\n--- Adding HOME to PYTHONPATH in ~/.bashrc ---"
+    if ! grep -Fxq 'export PYTHONPATH="$HOME:$PYTHONPATH"' "$HOME/.bashrc"; then
+        echo '' >> "$HOME/.bashrc"
+        echo 'export PYTHONPATH="$HOME:$PYTHONPATH"' >> "$HOME/.bashrc"
+    else
+        echo "PYTHONPATH already configured in ~/.bashrc. Skipping..."
+    fi
+}
+
+timed_confirm "Adding HOME to PYTHONPATH for quickstart imports..." _setup_pythonpath
+
 # --- ODrive Python Library Block ---
 _setup_odrive_python_lib() {
     echo -e "\\n--- Installing ODrive Python Library (inside venv) ---"
