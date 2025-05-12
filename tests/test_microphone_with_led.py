@@ -4,7 +4,7 @@ MAX_LEDS = 15                # Maximum number of LEDs on your strip
 LED_COLOR = (64, 64, 64)       # Grey color at quarter brightness (changed from blue)
 LED_DEVICE_PATH = "/dev/spidev0.0"  # Path to LED device
 LED_BAUDRATE = 800           # Baud rate for LED strip
-VOLUME_SENSITIVITY = 20       # Added from tts version
+VOLUME_SENSITIVITY = 100       # Added from tts version
 RAMP_SPEED = 1               # Added from tts version
 
 import threading
@@ -17,21 +17,11 @@ import alsaaudio
 import pyaudio
 
 def set_alsa_volume(volume=70):
+    """Set capture volume on the default ALSA mixer device (if available)."""
     try:
-        cards = alsaaudio.cards()
-        card_num = None
-        for i, card in enumerate(cards):
-            if 'UACDemoV10' in card:
-                card_num = i
-                break
-        
-        if card_num is None:
-            print("Could not find UACDemoV1.0 audio device")
-            return
-                
-        mixer = alsaaudio.Mixer('Capture', cardindex=card_num)
+        mixer = alsaaudio.Mixer('Capture')  # Default capture mixer
         mixer.setvolume(volume)
-        print(f"Set UACDemoV1.0 capture volume to {volume}%")
+        print(f"Set system capture volume to {volume}%")
     except alsaaudio.ALSAAudioError as e:
         print(f"Error setting volume: {e}")
 

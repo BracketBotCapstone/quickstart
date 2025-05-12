@@ -23,9 +23,8 @@ audio = client.generate(
     model="eleven_multilingual_v2"
 )
 
-# Set the desired audio device
-device_name = "UACDemoV1.0"  # Name of the USB audio device
-device_info = sd.query_devices(device_name, 'output')
+# Use the system's default output audio device
+device_info = sd.query_devices(kind='output')  # Default output device info
 device_id = device_info['index']
 device_sample_rate = device_info['default_samplerate']
 

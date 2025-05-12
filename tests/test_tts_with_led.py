@@ -4,7 +4,7 @@
 CHUNK_DURATION = 0.1         # Duration (in seconds) to average the audio for volume calculation
 MAX_LEDS = 15                 # Maximum number of LEDs on your strip
 LED_COLOR = (0, 0, 128)       # Reduced from (0, 0, 255) to half brightness
-DEVICE_NAME = "UACDemoV1.0"   # Audio output device name
+# Use the system's default output audio device
 VOICE_NAME = "Brian"          # Voice name for ElevenLabs API
 LED_DEVICE_PATH = "/dev/spidev0.0"  # Path to LED device
 LED_BAUDRATE = 800            # Baud rate for LED strip
@@ -27,21 +27,11 @@ from pi5neo import Pi5Neo
 dotenv.load_dotenv()
 
 def set_alsa_volume(volume=80):
+    """Set volume on the default ALSA mixer device (if available)."""
     try:
-        cards = alsaaudio.cards()
-        card_num = None
-        for i, card in enumerate(cards):
-            if 'UACDemoV10' in card:
-                card_num = i
-                break
-        
-        if card_num is None:
-            print("Could not find UACDemoV1.0 audio device")
-            return
-            
-        mixer = alsaaudio.Mixer('PCM', cardindex=card_num)
+        mixer = alsaaudio.Mixer()  # Use default mixer on the default sound card
         mixer.setvolume(volume)
-        print(f"Set UACDemoV1.0 volume to {volume}%")
+        print(f"Set system volume to {volume}%")
     except alsaaudio.ALSAAudioError as e:
         print(f"Error setting volume: {e}")
 
@@ -57,7 +47,7 @@ def play_text_sound(text):
         model="eleven_multilingual_v2"
     )
 
-    device_info = sd.query_devices(DEVICE_NAME, 'output')
+    device_info = sd.query_devices(kind='output')  # Default output device
     device_id = device_info['index']
     device_sample_rate = int(device_info['default_samplerate'])
 
