@@ -12,6 +12,7 @@ __pycache__/
 *.csv
 *.wav
 *.debug
+*.stl
 
 # Config and environment files
 rerun_config.yaml
