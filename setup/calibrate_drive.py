@@ -346,7 +346,7 @@ if __name__ == '__main__':
         # First calibration - ODrive
         print("\n\033[1;36mStep 1: ODrive Motor Calibration\033[0m")
         if not calibrate_odrive():
-            sys.exit(1)
+            print(f"{RED}ODrive calibration failed, continuing to motor direction test...{RESET}")
             
         # Second calibration - Motor direction
         print("\n\033[1;36mStep 2: Motor Direction Calibration\033[0m")
